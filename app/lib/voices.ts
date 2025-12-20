@@ -1,4 +1,10 @@
 // app/lib/voices.ts
+type VoiceKind = "generic" | "price" | "shipping" | "coupon" | "stock";
+
+type VoiceBlock = {
+  prefix: string;
+  lines: Record<VoiceKind, string[]>;
+};
 
 export type Voice = "market" | "ledger";
 
@@ -12,7 +18,7 @@ function pick<T>(arr: readonly T[]) {
 }
 
 // --- Markedsavdelingen (📣) ---
-const MARKET = {
+const MARKET: VoiceBlock = {
   prefix: "📣 Markedsavdelingen:",
   lines: {
     generic: [
@@ -57,7 +63,7 @@ const MARKET = {
 } as const;
 
 // --- Regnskapsføreren (🧾) ---
-const LEDGER = {
+export const LEDGER: VoiceBlock = {
   prefix: "🧾 Regnskapsfører:",
   lines: {
     generic: [
