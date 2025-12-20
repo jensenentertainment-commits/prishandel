@@ -21,6 +21,9 @@ function fightIconFor(text?: string) {
   return Megaphone;
 }
 
+function pick<T>(arr: readonly T[]) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 
 const LOGIN_PITCHES = [
