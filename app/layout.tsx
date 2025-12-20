@@ -3,6 +3,7 @@ import SupportChat from "./components/SupportChat";
 import { GeistSans, GeistMono } from "geist/font";
 import ShopNavbar from "./components/ShopNavBar";
 import SiteFooter from "./components/SiteFooter";
+import CookieBanner from "./components/CookieBanner";
 
 export default function RootLayout({
   children,
@@ -18,6 +19,7 @@ export default function RootLayout({
 
         <main>{children}</main>
 <SiteFooter />
+<CookieBanner />
       </body>
     </html>
   );

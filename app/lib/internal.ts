@@ -4,7 +4,7 @@ import type { ErrorCode } from "./systemErrors";
 export type SlackMsg = {
   id: string;
   ts: string; // "10:42"
-  channel: "#marked" | "#regnskap" | "#drift" | "#incident";
+  channel: "#marked" | "#regnskap" | "#drift" | "#incident"; 
   user: string;
   role: "Marked" | "Regnskap" | "Drift" | "Kundeservice";
   text: string;
@@ -29,7 +29,7 @@ const SLACK: SlackMsg[] = [
     id: "s1",
     ts: "09:12",
     channel: "#incident",
-    user: "Anne-L",
+    user: "Ole Raymond",
     role: "Drift",
     emoji: "🚨",
     text: "Incident trigget: E-KASSE-503. Kasse flyter som vanlig (dvs. ikke).",
@@ -58,7 +58,7 @@ const SLACK: SlackMsg[] = [
   {
     id: "s4",
     ts: "09:21",
-    channel: "#kundeservice",
+    channel: "#drift",
     user: "Sofia",
     role: "Kundeservice",
     emoji: "🤝",
