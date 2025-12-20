@@ -94,7 +94,9 @@ const fight = useMemo(() => {
 }, [kind, mounted]);
 
 // menuTease: før mount, ikke random
-const [menuTease, setMenuTease] = useState(MENU_SALES[0]);
+type MenuSale = (typeof MENU_SALES)[number];
+const [menuTease, setMenuTease] = useState<MenuSale>(MENU_SALES[0]);
+
 
 const pitch = useMemo(() => LOGIN_PITCHES[pitchIdx], [pitchIdx]);
 useEffect(() => {
