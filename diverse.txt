@@ -1,0 +1,46 @@
+Mine topp-kandidater som neste steg (i riktig rekkefølge)
+
+“Kasse kvittering” (ordrebekreftelse) som aldri blir ferdig
+
+Etter checkout-dialog redirecter du til en “Ordre mottatt (teoretisk)” side med:
+
+ordrenummer, “behandler”, “forventet levering: ubestemt”
+
+knapp: “Spor pakke” → ender i systemfeil/utsolgt
+
+Dette er den siste brikken i ecom-illusjonen.
+
+“Sporing” / “Posten tracking”-parodi
+
+/sporing/[id] som viser 6 statuser som motsier hverandre
+
+“Pakken er levert” + “Pakken er ikke sendt” samtidig
+
+Link fra kvittering og footer.
+
+“Kundeservice-senter” (FAQ som selger)
+
+/kundeservice med kategorier, søk, “chat”, “retur” som alltid ender i kampanje
+
+Føles legit og gjør at footer-lenkene får tyngde.
+
+“Cookie-banner” som er alt for aggressiv (men satirisk)
+
+“Vi bruker cookies for å huske at du liker tilbud”
+
+Hvis du trykker “Avslå” → E-COOKIE-451 (du har den!)
+
+Markedsavdeling-side som propaganda
+
+“Kampanjemotoren” med “planlagte kampanjer” som alle er “LIVE”
+
+Intern Slack/Jira kan linke hit.
+🌦️ Produkt: “Vær” (dropdown med sol/regn/kaos)
+
+🧠 A/B-test copy som bare endrer personlighet
+
+📊 “Besøkende akkurat nå”-tall som er åpenbart feil
+
+🧾 Regnskapslogg som vokser for hvert klikk
+
+🛒 Handlekurv som blir mer og mer passiv-aggressiv
