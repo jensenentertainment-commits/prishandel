@@ -92,7 +92,8 @@ export default function SupportChat() {
       {
         id: uid(),
         role: "bot",
-        text: voices.ledger.ps(),
+        text: voices.ledger.ps?.() ?? "Notert.",
+
         ts: Date.now() + 1,
       },
     ]);

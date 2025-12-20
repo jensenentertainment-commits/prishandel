@@ -1,11 +1,6 @@
 // app/lib/voices.ts
-type VoiceKind = "generic" | "price" | "shipping" | "coupon" | "stock";
 
-type VoiceBlock = {
-  prefix: string;
-  lines: Record<VoiceKind, string[]>;
-};
-
+export type VoiceKind = "generic" | "price" | "shipping" | "coupon" | "stock";
 export type Voice = "market" | "ledger";
 
 export type VoiceLine = {
@@ -13,12 +8,33 @@ export type VoiceLine = {
   text: string;
 };
 
+export type VoiceBlock = {
+  prefix: string;
+  lines: Record<VoiceKind, readonly string[]>;
+};
+
+export type VoiceActor = VoiceBlock & {
+  say: (kind?: VoiceKind) => string;
+  aside?: () => string;
+  ps?: () => string;
+};
+
 function pick<T>(arr: readonly T[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+export type LedgerActor = VoiceActor & {
+  ps: () => string;
+};
+
+
+function say(block: VoiceBlock, kind: VoiceKind = "generic") {
+  const list = block.lines[kind]?.length ? block.lines[kind] : block.lines.generic;
+  return `${block.prefix} ${pick(list)}`;
+}
+
 // --- Markedsavdelingen (📣) ---
-const MARKET: VoiceBlock = {
+const MARKET_BLOCK: VoiceBlock = {
   prefix: "📣 Markedsavdelingen:",
   lines: {
     generic: [
@@ -51,19 +67,18 @@ const MARKET: VoiceBlock = {
       "SISTE SJANSE!* (det er alltid siste sjanse) 👉 /kampanjer",
       "LAGER: 0 — ENTHUSIASME: 100! 👉 /kampanjer",
     ],
-  } as const,
-
-  say(kind: keyof typeof MARKET.lines = "generic") {
-    return `${MARKET.prefix} ${pick(MARKET.lines[kind])}`;
   },
+};
 
-  aside() {
-    return pick(["Gjelder i dag.*", "Kun nå.*", "Så lenge det varer.*", "Dette er en mulighet.*"] as const);
-  },
-} as const;
+const MARKET: VoiceActor = {
+  ...MARKET_BLOCK,
+  say: (kind = "generic") => say(MARKET_BLOCK, kind),
+  aside: () =>
+    pick(["Gjelder i dag.*", "Kun nå.*", "Så lenge det varer.*", "Dette er en mulighet.*"] as const),
+};
 
 // --- Regnskapsføreren (🧾) ---
-export const LEDGER: VoiceBlock = {
+const LEDGER_BLOCK: VoiceBlock = {
   prefix: "🧾 Regnskapsfører:",
   lines: {
     generic: [
@@ -80,50 +95,38 @@ export const LEDGER: VoiceBlock = {
       "Rabatten er ikke dokumentert.",
       "Tallene er ikke konsultert.",
     ],
-    shipping: [
-      "Leveringsdato er ubestemt.",
-      "Fraktvilkår er uavklart.",
-      "Dette er ikke koordinert.",
-      "Jeg anbefaler ro.",
-    ],
-    coupon: [
-      "Kupongeffekt er symbolsk.",
-      "Koden er ikke godkjent.",
-      "Dette gir primært følelse.",
-      "Dette vil dukke opp i avvik.",
-    ],
-    stock: [
-      "Lagerstatus er 0.",
-      "Utsolgt er forventet.",
-      "Dette er i tråd med historikk.",
-      "Dette endrer ingenting.",
-    ],
-  } as const,
-
-  say(kind: keyof typeof LEDGER.lines = "generic") {
-    return `${LEDGER.prefix} ${pick(LEDGER.lines[kind])}`;
+    shipping: ["Leveringsdato er ubestemt.", "Fraktvilkår er uavklart.", "Dette er ikke koordinert.", "Jeg anbefaler ro."],
+    coupon: ["Kupongeffekt er symbolsk.", "Koden er ikke godkjent.", "Dette gir primært følelse.", "Dette vil dukke opp i avvik."],
+    stock: ["Lagerstatus er 0.", "Utsolgt er forventet.", "Dette er i tråd med historikk.", "Dette endrer ingenting."],
   },
+};
 
-  ps() {
-    return pick(["Notert.", "Arkivert.", "Bekymringsfullt.", "Som forventet."] as const);
-  },
-} as const;
+export const LEDGER: LedgerActor = {
+  ...LEDGER_BLOCK,
+  say: (kind = "generic") => say(LEDGER_BLOCK, kind),
+  ps: () => pick(["Notert.", "Arkivert.", "Bekymringsfullt.", "Som forventet."] as const),
+};
 
 // ---- Exportert API ----
-export const voices = {
+export const voices: {
+  market: VoiceActor;
+  ledger: LedgerActor;
+  duel: (kind?: VoiceKind) => readonly VoiceLine[];
+  one: (voice: Voice, kind?: VoiceKind) => VoiceLine;
+} = {
   market: MARKET,
   ledger: LEDGER,
 
-  duel(kind: "generic" | "price" | "shipping" | "coupon" | "stock" = "generic"): VoiceLine[] {
+  duel(kind = "generic") {
     return [
       { voice: "market", text: MARKET.say(kind) },
       { voice: "ledger", text: LEDGER.say(kind) },
-    ];
+    ] as const;
   },
 
-  one(voice: Voice, kind: "generic" | "price" | "shipping" | "coupon" | "stock" = "generic"): VoiceLine {
+  one(voice, kind = "generic") {
     return voice === "market"
       ? { voice, text: MARKET.say(kind) }
       : { voice, text: LEDGER.say(kind) };
   },
-} as const;
+};
