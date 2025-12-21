@@ -5,7 +5,7 @@ import { Receipt, Megaphone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PRODUCTS, getLeaks, type Product } from "../lib/products";
 import { useCart } from "./cart/CartProvider";
-
+import Link from "next/link";
 
 function cn(...v: Array<string | false | null | undefined>) {
   return v.filter(Boolean).join(" ");
@@ -54,12 +54,9 @@ export default function ProductGrid(props: {
           >
             Se kampanjer →
           </a>
-          <a
-            href="/utsolgt"
-            className="rounded-xl bg-white text-black px-4 py-2 font-black border border-black/20 hover:bg-black/5"
-          >
-            Sjekk lager (0)
-          </a>
+        <Link href="/lager" className="...">
+  Intern Lagerstatus
+</Link>
         </div>
       </div>
 

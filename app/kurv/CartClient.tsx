@@ -4,7 +4,8 @@ import CheckoutGate from "../components/CheckoutGate";
 import { useCart } from "../components/cart/CartProvider";
 import LedgerPanel from "../components/ledger/LedgerPanel";
 import { useLedger } from "../components/ledger/useLedger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import { getVoice, say } from "../lib/abVoice";
 
 type Product = {
   slug: string;
@@ -34,6 +35,7 @@ export default function CartClient({
 const ledger = useLedger();
 const prevStatusRef = useRef<string | null>(null);
 const appendRef = useRef(ledger.append);
+const voice = useMemo(() => getVoice(), []);
 
   const linesWithProduct = state.lines
     .map((l) => {
@@ -90,8 +92,9 @@ useEffect(() => {
             </div>
           </div>
 <div className="mt-1 text-xs font-semibold opacity-60">
-  Status: {status}
+  {say(voice, itemCount === 0 ? "cart_empty" : "cart_status", { status })}
 </div>
+
 
           {linesWithProduct.length === 0 ? (
             <div className="p-10 text-sm opacity-70">

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icon";
 import { CreditCard, ShieldCheck, Truck, Loader2, Receipt, Zap } from "lucide-react";
 import { useCart } from "./cart/CartProvider";
 import { useLedger } from "./ledger/useLedger";
+import { getVoice, say } from "../lib/abVoice";
 
 type Step = {
   title: string;
@@ -25,7 +26,7 @@ const ledger = useLedger();
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [idx, setIdx] = useState(0);
-
+const voice = useMemo(() => getVoice(), []);
   // Stabil “utfall” per åpning (ingen random i render)
   const [outcome, setOutcome] = useState<"utsolgt" | "systemfeil">("utsolgt");
 
@@ -169,7 +170,8 @@ ledger.append("Kvittering generert (internt)", 0);
               {!running ? (
                 <>
                   <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
-                    <div className="text-sm font-black">Klar til å betale*</div>
+                    <div className="text-sm font-black">{say(voice, "checkout_ready")}</div>
+
                     <div className="mt-1 text-sm opacity-80">
                       *Betaling kan avvike fra virkeligheten. Regnskap følger med.
                     </div>
@@ -205,7 +207,8 @@ ledger.append("Kvittering generert (internt)", 0);
                 <>
                   <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="font-black">Behandler ordre…</div>
+                      <div className="font-black">{say(voice, "checkout_running")}</div>
+
                       <div className="inline-flex items-center gap-2 text-xs font-semibold opacity-70">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         live
