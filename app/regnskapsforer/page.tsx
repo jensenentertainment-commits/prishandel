@@ -1,9 +1,7 @@
-import RegnskapsforerClient from "./RegnskapsforerClient";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export const metadata = {
-  title: "Regnskapsfører | Prishandel",
-  description: "Status, hendelseslogg og offisiell vurdering av kampanjer.",
-};
+import RegnskapsforerClient from "./RegnskapsforerClient";
 
 export default function RegnskapsforerPage() {
   return <RegnskapsforerClient />;
