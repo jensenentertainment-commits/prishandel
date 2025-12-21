@@ -1,3 +1,5 @@
+import VisitorsNow from "@/app/components/VisitorsNow";
+
 export default function SiteFooter() {
   return (
     <footer className="border-t border-black/10 bg-neutral-100">
@@ -54,6 +56,8 @@ export default function SiteFooter() {
           <div>
             © {new Date().getFullYear()} Prishandel · Org.nr: 000 000 000
           </div>
+          <VisitorsNow className="opacity-80" />
+
           <div className="flex flex-wrap gap-4">
             <span>📣 Kampanjer kjøres kontinuerlig</span>
             <span>🧾 Dette er notert</span>

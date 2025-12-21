@@ -4,6 +4,7 @@ import { getProduct, getLeaks } from "../../lib/products";
 import CustomersAlsoBought from "../../components/CustomersAlsoBought";
 import ProductImage from "../../components/ProductImage";
 import ProductReviews from "../../components/ProductReviews";
+import AddToCartOnProduct from "../../components/cart/AddToCartOnProduct";
 
 
 export default async function ProductPage({
@@ -104,12 +105,8 @@ export default async function ProductPage({
             </div>
 
             <div className="mt-5 grid gap-2">
-              <a
-                href="/utsolgt"
-                className="rounded-xl bg-black text-white px-4 py-3 font-black text-center hover:opacity-90"
-              >
-                Legg i handlekurv (0)
-              </a>
+              <AddToCartOnProduct slug={p.slug} />
+
               <a
                 href="/kampanjer"
                 className="rounded-xl bg-red-600 text-white px-4 py-3 font-black text-center hover:opacity-90"

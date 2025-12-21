@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { Receipt, Megaphone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PRODUCTS, getLeaks, type Product } from "../lib/products";
+import { useCart } from "./cart/CartProvider";
 
 
 function cn(...v: Array<string | false | null | undefined>) {
@@ -104,16 +105,20 @@ export default function ProductGrid(props: {
 }
 
 function ProductCard({ p }: { p: Product }) {
+  const { add, state } = useCart();
+
+  const inCartQty = state.lines.find((l) => l.slug === p.slug)?.qty ?? 0;
+
   return (
     <article className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
       {/* bilde-placeholder */}
       <div className="h-40 bg-neutral-50 border-b border-black/10 p-4 flex items-end justify-between overflow-hidden">
-  <img
-    src={`/products/${p.slug}.svg`}
-    alt={p.title}
-    className="h-full w-full object-contain"
-  />
-</div>
+        <img
+          src={`/products/${p.slug}.svg`}
+          alt={p.title}
+          className="h-full w-full object-contain"
+        />
+      </div>
 
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
@@ -124,19 +129,17 @@ function ProductCard({ p }: { p: Product }) {
 
           <div className="text-right shrink-0">
             <div className="text-lg font-black">{p.now},-</div>
-            <div className="text-[11px] opacity-60 line-through">
-              {p.before},-
-            </div>
+            <div className="text-[11px] opacity-60 line-through">{p.before},-</div>
           </div>
         </div>
 
         <div className="rounded-xl bg-neutral-50 border border-black/10 p-3">
-  <div className="text-xs font-black inline-flex items-center gap-2">
-    <Icon icon={Receipt} />
-    Regnskap
-  </div>
-  <div className="mt-1 text-sm opacity-80">{p.note}</div>
-</div>
+          <div className="text-xs font-black inline-flex items-center gap-2">
+            <Icon icon={Receipt} />
+            Regnskap
+          </div>
+          <div className="mt-1 text-sm opacity-80">{p.note}</div>
+        </div>
 
         <div className="flex gap-2">
           <a
@@ -145,31 +148,35 @@ function ProductCard({ p }: { p: Product }) {
           >
             Kjøp nå →
           </a>
-         <a
-  href="/utsolgt"
-  className="rounded-xl bg-white text-black px-4 py-3 font-black border border-black/20 hover:bg-black/5 inline-flex items-center justify-center"
-  title="Legg i handlekurv (0)"
->
-  <Icon icon={ShoppingCart} />
-</a>
 
+          <button
+            type="button"
+            onClick={() => add(p.slug, 1)}
+            className="relative rounded-xl bg-white text-black px-4 py-3 font-black border border-black/20 hover:bg-black/5 inline-flex items-center justify-center"
+            title={inCartQty > 0 ? `I kurv (${inCartQty})` : "Legg i handlekurv"}
+          >
+            <Icon icon={ShoppingCart} />
+            {inCartQty > 0 && (
+              <span className="absolute -top-2 -right-2 rounded-full bg-red-600 text-white text-[11px] font-black px-2 py-0.5 tabular-nums">
+                {inCartQty}
+              </span>
+            )}
+          </button>
         </div>
-<div className="rounded-xl bg-neutral-50 border border-black/10 p-3">
-  <div className="text-[11px] font-black opacity-70">
-    Systemnotater
-  </div>
-  <ul className="mt-2 space-y-1 text-[12px] font-semibold">
-    {getLeaks(p.slug, 2).map((line) => (
-      <li key={line} className="truncate">
-        <span className="opacity-60">•</span> <span className="opacity-80">{line}</span>
-      </li>
-    ))}
-  </ul>
-</div>
 
-        <div className="text-[11px] opacity-60">
-          📣 Marked: “Dette haster.” • 🧾 “Dette er notert.”
+        <div className="rounded-xl bg-neutral-50 border border-black/10 p-3">
+          <div className="text-[11px] font-black opacity-70">Systemnotater</div>
+          <ul className="mt-2 space-y-1 text-[12px] font-semibold">
+            {getLeaks(p.slug, 2).map((line) => (
+              <li key={line} className="truncate">
+                <span className="opacity-60">•</span>{" "}
+                <span className="opacity-80">{line}</span>
+              </li>
+            ))}
+          </ul>
         </div>
+
+        <div className="text-[11px] opacity-60">📣 Marked: “Dette haster.” • 🧾 “Dette er notert.”</div>
       </div>
     </article>
   );

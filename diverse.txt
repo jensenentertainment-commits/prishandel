@@ -1,39 +1,3 @@
-Mine topp-kandidater som neste steg (i riktig rekkefølge)
-
-“Kasse kvittering” (ordrebekreftelse) som aldri blir ferdig
-
-Etter checkout-dialog redirecter du til en “Ordre mottatt (teoretisk)” side med:
-
-ordrenummer, “behandler”, “forventet levering: ubestemt”
-
-knapp: “Spor pakke” → ender i systemfeil/utsolgt
-
-Dette er den siste brikken i ecom-illusjonen.
-
-“Sporing” / “Posten tracking”-parodi
-
-/sporing/[id] som viser 6 statuser som motsier hverandre
-
-“Pakken er levert” + “Pakken er ikke sendt” samtidig
-
-Link fra kvittering og footer.
-
-“Kundeservice-senter” (FAQ som selger)
-
-/kundeservice med kategorier, søk, “chat”, “retur” som alltid ender i kampanje
-
-Føles legit og gjør at footer-lenkene får tyngde.
-
-“Cookie-banner” som er alt for aggressiv (men satirisk)
-
-“Vi bruker cookies for å huske at du liker tilbud”
-
-Hvis du trykker “Avslå” → E-COOKIE-451 (du har den!)
-
-Markedsavdeling-side som propaganda
-
-“Kampanjemotoren” med “planlagte kampanjer” som alle er “LIVE”
-
 Intern Slack/Jira kan linke hit.
 🌦️ Produkt: “Vær” (dropdown med sol/regn/kaos)
 
@@ -44,3 +8,132 @@ Intern Slack/Jira kan linke hit.
 🧾 Regnskapslogg som vokser for hvert klikk
 
 🛒 Handlekurv som blir mer og mer passiv-aggressiv
+
+“ordre mottatt” som plukker opp ?from=&code=&items=&total= fra checkout (så det føles enda mer ekte)
+er flere lager lenker på siden, men den havner på utsolgt siden. lager skulle fått en egen 
+gjøre søkefeltet "live" gi forslag til søk som ikke gir mening
+
+🌱 Idebank – langsom vekst
+1. 🕰️ Tid som faktor
+
+Siden oppfører seg annerledes basert på:
+
+Tid på døgnet
+
+Ukedag
+
+Sesong
+
+Eksempler:
+
+Natt → flere “midlertidige” meldinger
+
+Mandag → strengere språk
+
+Søndag → mer likegyldig
+
+Ingen forklaring. Aldri.
+
+2. 📉 “Historikk” som ingen husker å ha skapt
+
+Legg inn grafer, logger og tall:
+
+Prisendring siste 90 dager
+
+Forventningsindeks
+
+Avvik fra snitt
+
+Men:
+
+Starter på dag 1
+
+Eller har “data fra 2017”
+
+Ingen kilder. Bare tall.
+
+3. 🧍‍♂️ Bruker uten konto
+
+Introduser en “deg” uten innlogging:
+
+“Dine tidligere vurderinger”
+
+“Basert på din oppførsel”
+
+Men:
+
+Fungerer også i incognito
+
+Endrer seg uforutsigbart
+
+4. 📬 Varsler som aldri helt leveres
+
+UI som antyder kommunikasjon:
+
+“Ny melding tilgjengelig”
+
+“Status oppdatert”
+
+Klikk →
+
+“Ingen aktive varsler”
+
+5. 🧾 Dokumentasjon som ikke hjelper
+
+Lag sider som:
+
+/retningslinjer
+
+/metodikk
+
+/vurdering
+
+Språk:
+
+Korrekt
+
+Vagt
+
+Full av forbehold
+
+Som ekte offentlig dokumentasjon.
+
+6. 🧠 System som motsier seg selv
+
+Samme data presentert ulikt:
+
+Pris: “Stabil”
+
+Pris: “I bevegelse”
+
+Pris: “Avventer vurdering”
+
+Alt sant. Ingen forklaring.
+
+7. 🔁 Hendelser som nesten er buger
+
+Av og til:
+
+Spinner som aldri stopper (men forsvinner)
+
+Tall som hopper bakover
+
+Sortering som ignoreres
+
+Men:
+
+Aldri helt ødelagt
+
+Alltid “rimelig”
+
+8. 🪞 Meta-lag (senere)
+
+Når folk tror de har skjønt det:
+
+“Systemet er bevisst sin egen kompleksitet”
+
+Små referanser til forventninger, ikke humor
+
+Men dette er fase 3, ikke nå.
+la folk legge til i handlekurv og "kjøpe" ting
+meningsløse produktkategorier(klikkbare)

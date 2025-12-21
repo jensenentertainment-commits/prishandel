@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef,useState } from "react";
 import { voices } from "../lib/voices";
 import { Icon } from "./Icon";
 import {
@@ -12,6 +12,47 @@ import {
   Megaphone,
   Zap,
 } from "lucide-react";
+import CartNavItem from "./cart/CartNavItem";
+
+const NAV_SUGGESTIONS = [
+  "rabatt i teorien",
+  "midlertidig løsning",
+  "uavklart behov",
+  "systemavvik",
+  "lager (0)",
+  "administrativ ro",
+  "mild panikk",
+  "kritisk bagatell",
+  "forventningsbrudd",
+  "påvirker systemet",
+  "dokumentasjon (vagt)",
+  "avventer vurdering",
+  "ikke relevant",
+] as const;
+
+const NAV_SEARCH_SEED_KEY = "prh_nav_search_seed_v1";
+
+function getSessionSeed(key: string) {
+  try {
+    const existing = sessionStorage.getItem(key);
+    if (existing) return existing;
+    const seed = String(Math.floor(Math.random() * 1_000_000_000));
+    sessionStorage.setItem(key, seed);
+    return seed;
+  } catch {
+    return String(Math.floor(Math.random() * 1_000_000_000));
+  }
+}
+
+function hash(seed: string, s: string) {
+  let h = 2166136261;
+  const str = `${seed}:${s}`;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 
 function fightIconFor(text?: string) {
@@ -78,11 +119,49 @@ export default function ShopNavbar() {
   const [pitchIdx, setPitchIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+const [navQ, setNavQ] = useState("");
+const [navSuggestOpen, setNavSuggestOpen] = useState(false);
+const [navSeed, setNavSeed] = useState("0");
+const navWrapRef = useRef<HTMLDivElement | null>(null);
+
+useEffect(() => {
+  // seed kun på klient
+  setNavSeed(getSessionSeed(NAV_SEARCH_SEED_KEY));
+}, []);
+
+useEffect(() => {
+  const onDown = (e: MouseEvent) => {
+    if (!navWrapRef.current) return;
+    if (!navWrapRef.current.contains(e.target as Node)) setNavSuggestOpen(false);
+  };
+  window.addEventListener("mousedown", onDown);
+  return () => window.removeEventListener("mousedown", onDown);
+}, []);
 
 useEffect(() => {
   setMounted(true);
 }, []);
 
+const navSuggestions = useMemo(() => {
+  const t = navQ.trim().toLowerCase();
+
+  // helt “system”: når feltet er tomt, vis tre forslag likevel
+  if (t.length === 0) {
+    return ["rabatt i teorien", "lager (0)", "midlertidig løsning"];
+  }
+
+  if (t.length < 2) return [];
+
+  const matches = NAV_SUGGESTIONS.filter((s) => s.toLowerCase().includes(t));
+
+  // hvis lite match: bruk deterministisk “absurd” sortering
+  const pool = [...NAV_SUGGESTIONS].sort(
+    (a, b) => hash(navSeed, a) - hash(navSeed, b),
+  );
+
+  const combined = [...matches, ...pool.filter((x) => !matches.includes(x))];
+  return combined.slice(0, 3);
+}, [navQ, navSeed]);
 
 // fight ticker
 const [kind, setKind] = useState<Kind>("generic");
@@ -120,10 +199,13 @@ useEffect(() => {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setLoginOpen(false);
-        setMenuOpen(false);
-      }
+  setLoginOpen(false);
+  setMenuOpen(false);
+  setNavSuggestOpen(false);
+}
     }
+    setNavSuggestOpen(false);
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -209,17 +291,49 @@ function stripLeadEmoji(text?: string) {
           </a>
 
           {/* search */}
-          <div className="flex-1 relative">
-            <input
-              className="w-full rounded-lg border border-black/15 bg-white pl-3 pr-16 py-2 text-sm font-semibold placeholder:opacity-60"
-              placeholder="Søk i butikken…"
-            />
-            <div className="absolute right-2 top-1.5 flex items-center gap-2">
-              <span className="text-[10px] font-black rounded bg-yellow-300 px-2 py-0.5 border border-black/10">
-                -90%*
-              </span>
-            </div>
-          </div>
+<div ref={navWrapRef} className="flex-1 relative">
+  <input
+    value={navQ}
+    onChange={(e) => {
+      setNavQ(e.target.value);
+      setNavSuggestOpen(true);
+    }}
+    onFocus={() => setNavSuggestOpen(true)}
+    className="w-full rounded-lg border border-black/15 bg-white pl-3 pr-16 py-2 text-sm font-semibold placeholder:opacity-60"
+    placeholder="Søk i butikken…"
+  />
+
+  <div className="absolute right-2 top-1.5 flex items-center gap-2">
+    <span className="text-[10px] font-black rounded bg-yellow-300 px-2 py-0.5 border border-black/10">
+      -90%*
+    </span>
+  </div>
+
+  {navSuggestOpen && navSuggestions.length > 0 && (
+    <div className="absolute left-0 right-0 mt-2 rounded-xl border border-black/10 bg-white shadow-sm overflow-hidden z-[80]">
+      {navSuggestions.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => {
+            setNavQ(s);
+            setNavSuggestOpen(false);
+
+            // Valgfritt (hvis du vil): send til butikk med query
+            // window.location.href = `/butikk?q=${encodeURIComponent(s)}`;
+          }}
+          className="block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-black/5"
+        >
+          {s}
+        </button>
+      ))}
+      <div className="px-4 py-2 text-[11px] font-semibold opacity-50 border-t border-black/10">
+        Forslag generert av systemet
+      </div>
+    </div>
+  )}
+</div>
+
 
           {/* actions */}
           <div className="flex items-center gap-2 shrink-0">
@@ -231,14 +345,7 @@ function stripLeadEmoji(text?: string) {
               Logg inn
             </button>
 
-            <a
-              href="/kurv"
-              className="rounded-lg bg-green-600 text-white px-3 py-2 text-sm font-black hover:opacity-90"
-              title="Handlekurv"
-            >
-            <Icon icon={ShoppingCart} className="opacity-80" />
-<span className="hidden sm:inline">Kurv</span> (0)
-            </a>
+           <CartNavItem />
           </div>
         </div>
 
