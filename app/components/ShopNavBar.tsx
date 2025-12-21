@@ -169,7 +169,14 @@ const [kind, setKind] = useState<Kind>("generic");
 // før mount: alltid generic (stabil SSR/hydration)
 // etter mount: voices.duel(kind) roterer som før
 const fight = useMemo(() => {
-  return voices.duel(mounted ? kind : "generic");
+  if (!mounted) {
+    // Må være 100% stabilt mellom server + første client render
+    return [
+      { text: "📣 Marked: Alltid kampanje." },
+      { text: "🧾 Regnskap: Alltid bekymret." },
+    ];
+  }
+  return voices.duel(kind);
 }, [kind, mounted]);
 
 // menuTease: før mount, ikke random

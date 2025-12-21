@@ -7,6 +7,8 @@ import { pick, h32 } from "../lib/visitSeed";
 
 type Kind = "generic" | "price" | "shipping" | "coupon" | "stock";
 
+const KINDS: readonly Kind[] = ["generic", "price", "shipping", "coupon", "stock"] as const;
+
 const SLOGANS = [
   "ALT MÅ VEKK!",
   "SLUTTER I DAG!",
@@ -39,28 +41,31 @@ function randIntSeed(seed: number, min: number, max: number) {
 
 export default function MarkedsavdelingClient() {
   const { mounted, visit, seed } = useVisitVariant("markedsavdeling");
-  if (!mounted) return null;
 
-  const kinds: Kind[] = ["generic", "price", "shipping", "coupon", "stock"];
+  // 🔒 Før mount: returnér billige/stabile default-verdier.
+  const k1 = useMemo<Kind>(() => (mounted ? pick(KINDS, seed) : "generic"), [mounted, seed]);
+  const k2 = useMemo<Kind>(() => (mounted ? pick(KINDS, seed >>> 3) : "generic"), [mounted, seed]);
 
-  const k1 = useMemo(() => pick(kinds, seed), [seed]);
-  const k2 = useMemo(() => pick(kinds, seed >>> 3), [seed]);
+  const marketLine = useMemo(() => (mounted ? voices.market.say(k1) : ""), [mounted, k1]);
+  const ledgerLine = useMemo(() => (mounted ? voices.ledger.say(k1) : ""), [mounted, k1]);
 
-  const marketLine = useMemo(() => voices.market.say(k1), [k1]);
-  const ledgerLine = useMemo(() => voices.ledger.say(k1), [k1]);
+  const disclaimer = useMemo(
+    () => (mounted ? pick(DISCLAIMERS, seed >>> 5) : DISCLAIMERS[0]),
+    [mounted, seed],
+  );
 
-  const disclaimer = useMemo(() => pick(DISCLAIMERS, seed >>> 5), [seed]);
-  const abSloganA = useMemo(() => pick(SLOGANS, seed >>> 7), [seed]);
-  const abSloganB = useMemo(() => pick(SLOGANS, seed >>> 9), [seed]);
+  const abSloganA = useMemo(() => (mounted ? pick(SLOGANS, seed >>> 7) : SLOGANS[0]), [mounted, seed]);
+  const abSloganB = useMemo(() => (mounted ? pick(SLOGANS, seed >>> 9) : SLOGANS[1] ?? SLOGANS[0]), [mounted, seed]);
 
   // “Tall” som alltid er overdrevet, men stabilt per besøk
-  const conversion = useMemo(() => randIntSeed(h32(`conv:${seed}`), 187, 642), [seed]);
-  const urgency = useMemo(() => randIntSeed(h32(`urg:${seed}`), 91, 100), [seed]);
-  const clicks = useMemo(() => randIntSeed(h32(`clk:${seed}`), 1203, 9321), [seed]);
-  const complaints = useMemo(() => randIntSeed(h32(`cmp:${seed}`), 0, 3), [seed]);
-  const campaigns = useMemo(() => randIntSeed(h32(`cam:${seed}`), 12, 28), [seed]);
+  const conversion = useMemo(() => (mounted ? randIntSeed(h32(`conv:${seed}`), 187, 642) : 0), [mounted, seed]);
+  const urgency = useMemo(() => (mounted ? randIntSeed(h32(`urg:${seed}`), 91, 100) : 0), [mounted, seed]);
+  const clicks = useMemo(() => (mounted ? randIntSeed(h32(`clk:${seed}`), 1203, 9321) : 0), [mounted, seed]);
+  const complaints = useMemo(() => (mounted ? randIntSeed(h32(`cmp:${seed}`), 0, 3) : 0), [mounted, seed]);
+  const campaigns = useMemo(() => (mounted ? randIntSeed(h32(`cam:${seed}`), 12, 28) : 0), [mounted, seed]);
 
   const generatedHeadline = useMemo(() => {
+    if (!mounted) return "";
     const noun = pick(
       [
         "Verdighet",
@@ -74,22 +79,30 @@ export default function MarkedsavdelingClient() {
       seed >>> 11,
     );
     return `${pick(SLOGANS, seed >>> 13)} ${noun}`;
-  }, [seed]);
+  }, [mounted, seed]);
 
-  const generatedBody = useMemo(() => voices.market.say(k2), [k2]);
-  const generatedFoot = useMemo(() => `🧾 Regnskapsfører: ${voices.ledger.ps()}`, [seed]);
+  const generatedBody = useMemo(() => (mounted ? voices.market.say(k2) : ""), [mounted, k2]);
+
+  // ⚠️ voices.ledger.ps() kan være "random" per kall, så vi kjører den kun etter mount.
+  const generatedFoot = useMemo(() => {
+    if (!mounted) return "🧾 Regnskapsfører: ...";
+    return `🧾 Regnskapsfører: ${voices.ledger.ps()}`;
+  }, [mounted, seed]);
 
   // “Sist oppdatert”: føles live, men er bare en “intern” stamp
   const updatedAt = useMemo(() => {
+    if (!mounted) return "";
     const hh = String(randIntSeed(h32(`hh:${seed}`), 8, 16)).padStart(2, "0");
     const mm = String(randIntSeed(h32(`mm:${seed}`), 0, 59)).padStart(2, "0");
     return `${hh}:${mm}`;
-  }, [seed]);
+  }, [mounted, seed]);
 
-  const scoreA = useMemo(() => randIntSeed(h32(`sa:${seed}`), 51, 99), [seed]);
-  const scoreB = useMemo(() => randIntSeed(h32(`sb:${seed}`), 51, 99), [seed]);
+  const scoreA = useMemo(() => (mounted ? randIntSeed(h32(`sa:${seed}`), 51, 99) : 0), [mounted, seed]);
+  const scoreB = useMemo(() => (mounted ? randIntSeed(h32(`sb:${seed}`), 51, 99) : 0), [mounted, seed]);
 
-  const pressure = useMemo(() => randIntSeed(h32(`press:${seed}`), 92, 100), [seed]);
+  const pressure = useMemo(() => (mounted ? randIntSeed(h32(`press:${seed}`), 92, 100) : 0), [mounted, seed]);
+
+  if (!mounted) return null;
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
@@ -376,7 +389,13 @@ function FakeAction(props: { label: string; tag: string; tone: "market" | "ledge
   );
 }
 
-function VariantCard(props: { title: string; label: string; tone: string; badge: string; score: number }) {
+function VariantCard(props: {
+  title: string;
+  label: string;
+  tone: string;
+  badge: string;
+  score: number;
+}) {
   const scoreLabel = props.score > 90 ? "KRITISK BRA" : props.score > 75 ? "BRA" : "OK";
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-4">

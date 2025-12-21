@@ -102,7 +102,7 @@ function clamp(n: number, a: number, b: number) {
 
 export default function RegnskapsforerClient() {
   const { mounted, visit, seed } = useVisitVariant("regnskapsforer");
-  if (!mounted) return null;
+ 
 
   const s = useMemo(() => pick(STATUS, seed), [seed]);
 
@@ -169,7 +169,7 @@ export default function RegnskapsforerClient() {
   }, [seed]);
 
   const quote = useMemo(() => pick(QUOTES, seed >>> 2), [seed]);
-
+ if (!mounted) return null;
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
       {/* header */}
