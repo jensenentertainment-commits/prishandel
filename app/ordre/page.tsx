@@ -121,7 +121,11 @@ function buildHref(current: Record<string, string>, patch: Record<string, string
   Object.keys(next).forEach((k) => {
     if (!next[k]) delete next[k];
   });
-  const usp = new URLSearchParams(next);
+  const entries = Object.entries(next).filter(
+  (kv): kv is [string, string] => typeof kv[1] === "string" && kv[1].length > 0
+);
+const usp = new URLSearchParams(entries);
+
   const qs = usp.toString();
   return qs ? `/ordre?${qs}` : `/ordre`;
 }
