@@ -94,10 +94,14 @@ function prng(seed: number) {
 
 function pickSeed() {
   const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 47)); // ~47 min
-  const env = `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`;
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 47));
+  const env =
+    typeof window !== "undefined"
+      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
+      : "server";
   return hashString(`${cycle}|${env}`);
 }
+
 
 function badgeClass(accent: CampaignState["accent"]) {
   if (accent === "red") return "bg-red-600 text-white";

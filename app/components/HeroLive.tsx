@@ -16,10 +16,14 @@ function prng(seed: number) {
 
 function pickSeed() {
   const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 53)); // ~53 min
-  const env = `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`;
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 53));
+  const env =
+    typeof window !== "undefined"
+      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
+      : "server";
   return hashString(`${cycle}|${env}`);
 }
+
 
 type HeroVariant = {
   kickerTag: string;
