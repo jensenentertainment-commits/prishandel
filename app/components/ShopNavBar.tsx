@@ -99,7 +99,7 @@ const LOGIN_PITCHES = [
 ] as const;
 
 const CATS = [
-  { label: "Butikk", href: "/butikk", pill: "bg-red-600 text-white", pillText: "SALG" },
+  { label: "Produkter", href: "/butikk", pill: "bg-red-600 text-white", pillText: "SALG" },
   { label: "Kampanjer", href: "/kampanjer", pill: "bg-yellow-300 text-black", pillText: "NY" },
   { label: "Utsolgt", href: "/utsolgt", pill: "bg-black text-white", pillText: "100%" },
   { label: "Regnskapsfører", href: "/regnskapsforer", pill: "bg-green-600 text-white", pillText: "LIVE" },
@@ -440,7 +440,7 @@ function stripLeadEmoji(text?: string) {
                     className="rounded-lg bg-white text-black px-4 py-2 text-sm font-black border border-black/20 hover:bg-black/5"
                     onClick={() => setMenuOpen(false)}
                   >
-                    Butikk
+                    Produkter
                   </a>
                 </div>
               </div>

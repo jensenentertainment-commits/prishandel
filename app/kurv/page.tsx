@@ -2,7 +2,6 @@
 import { getAllProducts, getLeaks } from "../lib/products";
 import CartClient from "./CartClient";
 
-
 function seedSlugs() {
   return ["verdighet-premium", "mot-limited", "fomo-abonnement"];
 }
@@ -20,9 +19,5 @@ export default function CartPage() {
     leak: getLeaks(p.slug, 1)[0] ?? "—",
   }));
 
-  return (
-    
-      <CartClient products={products} />
-   
-  );
+  return <CartClient products={products} />;
 }

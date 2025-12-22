@@ -1,0 +1,198 @@
+LOV 1 – TID ER ÅRSAK, IKKE HANDLING
+
+Endring skjer kun fordi tid går.
+
+Konsekvenser:
+
+ingen klikk påvirker noe
+
+ingen bruker gjør noe “riktig”
+
+ingen respons
+
+ingen feedback-loop
+
+Tid kan være:
+
+dag
+
+tidsblokk
+
+periode
+
+syklus
+
+Men:
+
+handling er irrelevant.
+
+LOV 2 – ALT KAN KOMME TILBAKE
+
+Ingen tilstand er permanent.
+
+Konsekvenser:
+
+ingen “utvikling”
+
+ingen progresjon
+
+ingen avslutning
+
+Hvis noe forsvinner:
+
+det kan komme tilbake
+
+uten forklaring
+
+uten historikk
+
+LOV 3 – INGENTING KOMMER TILBAKE IDENTISK
+
+Gjenkjennelse er tillatt. Repetisjon er ikke.
+
+Konsekvenser:
+
+samme struktur
+
+samme type tilstand
+
+små avvik i:
+
+tall
+
+språk
+
+rekkefølge
+
+tilgjengelighet
+
+Målet er:
+
+“Dette minner meg om noe”
+ikke
+“Dette har jeg sett før”
+
+LOV 4 – SYSTEMET HUSKER INGENTING
+
+Prishandel har ingen hukommelse.
+
+Konsekvenser:
+
+ingen reell historikk
+
+ingen “før”
+
+ingen minne om brukere
+
+ingen akkumulering
+
+Alt som ser ut som historikk er:
+
+en visning
+
+en tilstand
+
+ikke en sannhet
+
+Bare mennesker husker.
+
+LOV 5 – INKONSISTENS ER TILLATT
+
+Samme informasjon kan eksistere i flere tilstander samtidig.
+
+Konsekvenser:
+
+pris kan være stabil og i bevegelse
+
+status kan være uavklart og vurdert
+
+tall kan være presise og meningsløse
+
+Ingen konfliktløsing.
+Ingen forklaring.
+
+Dette er ikke feil – det er byråkrati.
+
+LOV 6 – SYSTEMET FORKLARER SEG IKKE
+
+Ingen endring kommenteres.
+
+Konsekvenser:
+
+ingen “oppdatert”
+
+ingen “nytt”
+
+ingen “endret”
+
+ingen release-notes
+
+Alt bare:
+
+er sånn nå.
+
+LOV 7 – ENDING ER LANGSOMMERE ENN FORVENTET
+
+Systemet endrer seg sjeldnere enn brukeren tror.
+
+Konsekvenser:
+
+ingen raske skifter
+
+ingen dramatikk
+
+ingen “wow-øyeblikk”
+
+Hvis folk legger merke til endringen:
+→ den var for stor.
+
+HVORDAN DU BRUKER DISSE LOVENE I PRAKSIS
+
+Når du vurderer å gjøre noe “levende”, spør:
+
+Bryter dette noen av lovene?
+
+Føles dette som respons?
+
+Ville dette fortsatt skjedd hvis ingen besøkte siden?
+
+Kan dette komme tilbake senere uten at det føles rart?
+
+Hvis svaret på ett av disse er “nei”:
+→ ikke implementer.
+
+VIKTIG ADVARSEL (og denne er reell)
+
+Ikke implementer alle naturlover samtidig.
+
+Naturlover:
+
+defineres samlet
+
+aktiveres gradvis
+
+aldri endres etterpå
+
+Systemet må få:
+
+én pust først
+
+DEN ENESTE FEILEN DU VIRKELIG KAN GJØRE
+
+Å bli utålmodig.
+
+Hvis du:
+
+legger til liv for tidlig
+
+legger til for mye
+
+begynner å “finjustere”
+
+…så ødelegger du noe som ellers kan leve i årevis.
+
+OPPSUMMERT I ÉN SETNING
+
+Bygg et ferdig rom.
+Slipp tiden inn.
+Rør ingenting.

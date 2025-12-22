@@ -8,6 +8,12 @@ type Order = {
   payment: string;
   delivery: string;
   created: string;
+    ref: string;
+  sys: string;
+  prh: string;
+  caseType: string;
+  severity: string;
+
 
   // “telemetri” fra checkout
   from?: string;
@@ -44,6 +50,11 @@ function fakeOrder(id: string, sp?: Record<string, string | string[] | undefined
     payment,
     delivery: "Ubestemt",
     created: "Nettopp",
+    ref: `REF-${clean.slice(0, 4).toUpperCase()}-${clean.length}7`,
+    sys: `SYS-${clean.slice(-4).toUpperCase()}-${clean.length}3`,
+    prh: `PRH-${clean.slice(0, 2).toUpperCase()}-${clean.slice(-2).toUpperCase()}`,
+    caseType: "Handelsrelatert vurdering",
+    severity: outcome === "systemfeil" ? "Betydelig" : "Moderat",
 
     from: pick("from") ?? undefined,
     code: pick("code") ?? undefined,
@@ -65,6 +76,7 @@ export default async function OrderPage({
 
   const order = fakeOrder(id, sp);
   if (!order) notFound();
+  
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-16">
@@ -98,6 +110,48 @@ export default async function OrderPage({
 
           {/* DIVIDER */}
           <div className="h-px bg-black/10" />
+{/* CASE DETAILS */}
+<div className="space-y-2">
+  <div className="font-black">Saksdetaljer</div>
+  <div className="grid grid-cols-2 gap-4 text-sm">
+    <Meta label="Referanse" value={order.ref} />
+    <Meta label="Systemkode" value={order.sys} />
+    <Meta label="PRH-nøkkel" value={order.prh} />
+    <Meta label="Sakstype" value={order.caseType} />
+    <Meta label="Alvorlighetsgrad" value={order.severity} />
+    <Meta label="Behandlingsnivå" value="Administrativt" />
+  </div>
+</div>
+
+<div className="h-px bg-black/10" />
+
+{/* PROCESS LOG */}
+<div className="space-y-2">
+  <div className="font-black">Behandlingslogg</div>
+  <ul className="text-sm space-y-2">
+    <li className="flex gap-3">
+      <span className="w-20 text-xs font-semibold opacity-60">T+00</span>
+      <span className="opacity-80">Registrert i systemet</span>
+    </li>
+    <li className="flex gap-3">
+      <span className="w-20 text-xs font-semibold opacity-60">T+01</span>
+      <span className="opacity-80">Tildelt avdeling: Marked</span>
+    </li>
+    <li className="flex gap-3">
+      <span className="w-20 text-xs font-semibold opacity-60">T+02</span>
+      <span className="opacity-80">Vurdering initiert (uten frist)</span>
+    </li>
+    <li className="flex gap-3">
+      <span className="w-20 text-xs font-semibold opacity-60">T+03</span>
+      <span className="opacity-80">Foreløpig avklaring: Ubestemt</span>
+    </li>
+  </ul>
+  <div className="text-xs opacity-60">
+    Loggen viser et utvalg av hendelser. Øvrige hendelser kan være utelatt av hensyn til ro.
+  </div>
+</div>
+
+<div className="h-px bg-black/10" />
 
           {/* MESSAGE */}
           <div className="space-y-2">

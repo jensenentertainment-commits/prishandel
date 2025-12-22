@@ -1,139 +1,85 @@
-Intern Slack/Jira kan linke hit.
-🌦️ Produkt: “Vær” (dropdown med sol/regn/kaos)
+✅ “Vær”-produktet (men ikke som dropdown)
 
-🧠 A/B-test copy som bare endrer personlighet
+Konseptet er 10/10.
+Implementasjonen må være ekstremt disiplinert.
 
-📊 “Besøkende akkurat nå”-tall som er åpenbart feil
+⚠️ Kritisk justering:
 
-🧾 Regnskapslogg som vokser for hvert klikk
+Dropdown gir for mye brukeragens
 
-🛒 Handlekurv som blir mer og mer passiv-aggressiv
+Folk vil tro de velger vær
 
-“ordre mottatt” som plukker opp ?from=&code=&items=&total= fra checkout (så det føles enda mer ekte)
-er flere lager lenker på siden, men den havner på utsolgt siden. lager skulle fått en egen 
-gjøre søkefeltet "live" gi forslag til søk som ikke gir mening
+Bedre løsning (brutalt ærlig):
 
-🌱 Idebank – langsom vekst
-1. 🕰️ Tid som faktor
+Vær vises, ikke velges
 
-Siden oppfører seg annerledes basert på:
+Evt. “Gjeldende forhold: Regn”
 
-Tid på døgnet
+Ingen interaksjon
 
-Ukedag
+Ingen bekreftelse
 
-Sesong
+👉 Vær skal ramme, ikke feature.
 
-Eksempler:
+✅ Passiv-aggressiv handlekurv (tørt, saklig)
 
-Natt → flere “midlertidige” meldinger
+Dette er perfekt på riktig tidspunkt.
 
-Mandag → strengere språk
+Viktig at:
 
-Søndag → mer likegyldig
+tonen er administrativ
 
-Ingen forklaring. Aldri.
+aldri sarkastisk
 
-2. 📉 “Historikk” som ingen husker å ha skapt
+aldri morsom
 
-Legg inn grafer, logger og tall:
+Eksempler du har er helt riktige.
 
-Prisendring siste 90 dager
+⚠️ Regel:
 
-Forventningsindeks
+Handlekurven skal aldri reagere raskt.
 
-Avvik fra snitt
+Forsinkelse + likegyldighet = autoritet.
 
-Men:
+✅ Historikk ingen husker
 
-Starter på dag 1
+Dette er ekstremt sterkt.
 
-Eller har “data fra 2017”
+Hvorfor:
 
-Ingen kilder. Bare tall.
+folk tviler på egen hukommelse
 
-3. 🧍‍♂️ Bruker uten konto
+systemet virker eldre enn seg selv
 
-Introduser en “deg” uten innlogging:
+det etablerer kontinuitet uten bevis
 
-“Dine tidligere vurderinger”
+👉 Dette er institusjonsmagi.
 
-“Basert på din oppførsel”
+✅ Motsigende systemstatus
 
-Men:
+Dette er byråkrati i ren form.
 
-Fungerer også i incognito
+Vis:
 
-Endrer seg uforutsigbart
+samme informasjon
 
-4. 📬 Varsler som aldri helt leveres
+med ulik vurdering
 
-UI som antyder kommunikasjon:
+uten konfliktløsing
 
-“Ny melding tilgjengelig”
+👉 Dette er IKKE satire.
+Dette er virkelighet.
 
-“Status oppdatert”
+✅ Dokumentasjon som ikke hjelper
 
-Klikk →
+/retninglinjer, /metodikk, /vurdering er HELT RIKT.
 
-“Ingen aktive varsler”
+Språket du beskriver:
 
-5. 🧾 Dokumentasjon som ikke hjelper
+korrekt
 
-Lag sider som:
+selvbeskyttende
 
-/retningslinjer
+uendelig vagt
 
-/metodikk
-
-/vurdering
-
-Språk:
-
-Korrekt
-
-Vagt
-
-Full av forbehold
-
-Som ekte offentlig dokumentasjon.
-
-6. 🧠 System som motsier seg selv
-
-Samme data presentert ulikt:
-
-Pris: “Stabil”
-
-Pris: “I bevegelse”
-
-Pris: “Avventer vurdering”
-
-Alt sant. Ingen forklaring.
-
-7. 🔁 Hendelser som nesten er buger
-
-Av og til:
-
-Spinner som aldri stopper (men forsvinner)
-
-Tall som hopper bakover
-
-Sortering som ignoreres
-
-Men:
-
-Aldri helt ødelagt
-
-Alltid “rimelig”
-
-8. 🪞 Meta-lag (senere)
-
-Når folk tror de har skjønt det:
-
-“Systemet er bevisst sin egen kompleksitet”
-
-Små referanser til forventninger, ikke humor
-
-Men dette er fase 3, ikke nå.
-la folk legge til i handlekurv og "kjøpe" ting
-meningsløse produktkategorier(klikkbare)
+👉 Dette bør ligge der lenge før folk finner det.

@@ -11,6 +11,7 @@ export default function SiteFooter() {
             <li><a href="/kontakt" className="hover:underline">Kontakt oss</a></li>
             <li><a href="/levering" className="hover:underline">Levering</a></li>
             <li><a href="/retur" className="hover:underline">Retur & reklamasjon</a></li>
+            <li><a href="/ordre" className="hover:underline">Ordreoversikt</a></li>
             <li><a href="/faq" className="hover:underline">Ofte stilte spørsmål</a></li>
           </ul>
         </div>
@@ -33,6 +34,9 @@ export default function SiteFooter() {
             <li><a href="/vilkar" className="hover:underline">Kjøpsvilkår</a></li>
             <li><a href="/personvern" className="hover:underline">Personvern</a></li>
             <li><a href="/cookies" className="hover:underline">Informasjonskapsler</a></li>
+            <li><a href="/vurdering" className="hover:underline">Vurdering</a></li>
+<li><a href="/retningslinjer" className="hover:underline">Retningslinjer</a></li>
+<li><a href="/metodikk" className="hover:underline">Metodikk</a></li>
           </ul>
         </div>
 
@@ -54,7 +58,7 @@ export default function SiteFooter() {
       <div className="border-t border-black/10">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs opacity-70">
           <div>
-            © {new Date().getFullYear()} Prishandel · Org.nr: 000 000 000
+            © {new Date().getFullYear()} Prishandel · Org.nr: 000 000 000 · Utviklet av SystemSentralen
           </div>
           <VisitorsNow className="opacity-80" />
 

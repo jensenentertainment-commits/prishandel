@@ -1,4 +1,5 @@
 "use client";
+
 import { ShoppingCart } from "lucide-react";
 import { Icon } from "./Icon";
 import { Receipt, Megaphone } from "lucide-react";
@@ -7,9 +8,62 @@ import { PRODUCTS, getLeaks, type Product } from "../lib/products";
 import { useCart } from "./cart/CartProvider";
 import Link from "next/link";
 
+/* ---------- helpers ---------- */
+
 function cn(...v: Array<string | false | null | undefined>) {
   return v.filter(Boolean).join(" ");
 }
+
+function hashString(str: string) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i);
+  return Math.abs(h);
+}
+
+function prng(seed: number) {
+  let x = seed || 1;
+  return () => {
+    x = Math.imul(48271, x) % 0x7fffffff;
+    return x / 0x7fffffff;
+  };
+}
+
+function pickSeed(extra = "") {
+  const now = new Date();
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 61)); // egen rytme
+  const env =
+    typeof window !== "undefined"
+      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
+      : "server";
+  return hashString(`${cycle}|${env}|${extra}`);
+}
+
+/* ---------- språkvarianter ---------- */
+
+const CTA_VARIANTS = [
+  "Kjøp nå →",
+  "Fortsett →",
+  "Gå videre →",
+  "Fullfør kjøp →",
+  "Bekreft valg →",
+];
+
+const ACCOUNTING_VARIANTS = [
+  "Pris er godkjent for visning.",
+  "Avvik er notert uten tiltak.",
+  "Tall er registrert.",
+  "Beregning er gjennomført.",
+  "Regnskap er orientert.",
+];
+
+const FOOTER_VARIANTS = [
+  "📣 Marked: “Dette haster.” • 🧾 Regnskap: “Dette er notert.”",
+  "📣 Marked: “Siste sjanse.” • 🧾 Regnskap: “Ikke bekreftet.”",
+  "📣 Marked: “Folk kjøper dette.” • 🧾 Regnskap: “Tall foreligger.”",
+  "📣 Marked: “Dette er populært.” • 🧾 Regnskap: “Avvik kan forekomme.”",
+];
+
+/* ---------- grid ---------- */
 
 export default function ProductGrid(props: {
   title?: string;
@@ -54,9 +108,9 @@ export default function ProductGrid(props: {
           >
             Se kampanjer →
           </a>
-        <Link href="/lager" className="...">
-  Intern Lagerstatus
-</Link>
+          <Link href="/lager" className="text-sm font-black underline">
+            Intern lagerstatus
+          </Link>
         </div>
       </div>
 
@@ -79,17 +133,16 @@ export default function ProductGrid(props: {
         {items.length === 0 && (
           <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-black/10 bg-white p-6">
             <div className="text-lg font-black">Ingen treff</div>
-           <div className="mt-1 text-sm opacity-80 space-y-1">
-  <div className="inline-flex items-center gap-2">
-    <Icon icon={Megaphone} />
-    Markedsavdelingen: prøv “tilbud”.
-  </div>
-  <div className="inline-flex items-center gap-2 opacity-70">
-    <Icon icon={Receipt} />
-    Regnskap: notert.
-  </div>
-</div>
-
+            <div className="mt-1 text-sm opacity-80 space-y-1">
+              <div className="inline-flex items-center gap-2">
+                <Icon icon={Megaphone} />
+                Markedsavdelingen: prøv “tilbud”.
+              </div>
+              <div className="inline-flex items-center gap-2 opacity-70">
+                <Icon icon={Receipt} />
+                Regnskap: notert.
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -101,14 +154,25 @@ export default function ProductGrid(props: {
   );
 }
 
+/* ---------- product card ---------- */
+
 function ProductCard({ p }: { p: Product }) {
   const { add, state } = useCart();
 
   const inCartQty = state.lines.find((l) => l.slug === p.slug)?.qty ?? 0;
 
+  const seed = pickSeed(p.slug);
+  const rnd = prng(seed);
+
+  const ctaText = CTA_VARIANTS[Math.floor(rnd() * CTA_VARIANTS.length)];
+  const accountingText =
+    ACCOUNTING_VARIANTS[Math.floor(rnd() * ACCOUNTING_VARIANTS.length)];
+  const footerText =
+    FOOTER_VARIANTS[Math.floor(rnd() * FOOTER_VARIANTS.length)];
+
   return (
     <article className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-      {/* bilde-placeholder */}
+      {/* bilde */}
       <div className="h-40 bg-neutral-50 border-b border-black/10 p-4 flex items-end justify-between overflow-hidden">
         <img
           src={`/products/${p.slug}.svg`}
@@ -126,7 +190,9 @@ function ProductCard({ p }: { p: Product }) {
 
           <div className="text-right shrink-0">
             <div className="text-lg font-black">{p.now},-</div>
-            <div className="text-[11px] opacity-60 line-through">{p.before},-</div>
+            <div className="text-[11px] opacity-60 line-through">
+              {p.before},-
+            </div>
           </div>
         </div>
 
@@ -135,7 +201,7 @@ function ProductCard({ p }: { p: Product }) {
             <Icon icon={Receipt} />
             Regnskap
           </div>
-          <div className="mt-1 text-sm opacity-80">{p.note}</div>
+          <div className="mt-1 text-sm opacity-80">{accountingText}</div>
         </div>
 
         <div className="flex gap-2">
@@ -143,7 +209,7 @@ function ProductCard({ p }: { p: Product }) {
             href={`/produkt/${p.slug}`}
             className="flex-1 text-center rounded-xl bg-red-600 text-white px-4 py-3 font-black hover:opacity-90"
           >
-            Kjøp nå →
+            {ctaText}
           </a>
 
           <button
@@ -158,6 +224,7 @@ function ProductCard({ p }: { p: Product }) {
                 {inCartQty}
               </span>
             )}
+         д
           </button>
         </div>
 
@@ -173,7 +240,7 @@ function ProductCard({ p }: { p: Product }) {
           </ul>
         </div>
 
-        <div className="text-[11px] opacity-60">📣 Marked: “Dette haster.” • 🧾 “Dette er notert.”</div>
+        <div className="text-[11px] opacity-60">{footerText}</div>
       </div>
     </article>
   );
