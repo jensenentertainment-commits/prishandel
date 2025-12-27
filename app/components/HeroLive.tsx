@@ -132,7 +132,7 @@ export default function HeroLive() {
       </div>
 
       {/* H1 */}
-      <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.02]">
+      <h1 className="text-5xl md:text-5xl lg:text-7xl font-black leading-[1.02]">
         {hero.h1}
       </h1>
 
