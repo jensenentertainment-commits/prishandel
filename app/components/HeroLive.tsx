@@ -1,30 +1,5 @@
 "use client";
 
-function hashString(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i);
-  return Math.abs(h);
-}
-
-function prng(seed: number) {
-  let x = seed || 1;
-  return () => {
-    x = Math.imul(48271, x) % 0x7fffffff;
-    return x / 0x7fffffff;
-  };
-}
-
-function pickSeed() {
-  const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 53));
-  const env =
-    typeof window !== "undefined"
-      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
-      : "server";
-  return hashString(`${cycle}|${env}`);
-}
-
-
 type HeroVariant = {
   kickerTag: string;
   kickerTail: string; // uten tall
@@ -38,6 +13,46 @@ type CtaVariant = {
   secondary: string;
   note: string;
 };
+
+function hashString(str: string) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i);
+  return Math.abs(h);
+}
+
+/**
+ * Park–Miller LCG, gjort JS-sikkert:
+ * - sørger for at x alltid er positiv (1..m-1)
+ * - returnerer 0..1 (ikke negativ)
+ */
+function prng(seed: number) {
+  const M = 0x7fffffff; // 2147483647
+  let x = seed % M;
+  if (x <= 0) x += M - 1;
+
+  return () => {
+    x = Math.imul(48271, x) % M;
+    if (x <= 0) x += M - 1;
+    return x / M;
+  };
+}
+
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
+
+function pickSeed() {
+  const now = new Date();
+  // 53-minutters "syklus" (som før)
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 53));
+
+  const env =
+    typeof window !== "undefined"
+      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
+      : "server";
+
+  return hashString(`${cycle}|${env}`);
+}
 
 const HERO_VARIANTS: HeroVariant[] = [
   {
@@ -77,16 +92,20 @@ const CTA_VARIANTS: CtaVariant[] = [
   { primary: "FORTSETT TIL SYSTEMET", secondary: "VIS OVERSIKT", note: "Systemet er allerede i gang." },
 ];
 
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
+function safePick<T>(arr: T[], idx: number, fallback: T): T {
+  return arr.length ? arr[idx] ?? fallback : fallback;
 }
 
 export default function HeroLive() {
   const seed = pickSeed();
   const rnd = prng(seed);
 
-  const hero = HERO_VARIANTS[seed % HERO_VARIANTS.length];
-  const cta = CTA_VARIANTS[Math.floor(rnd() * CTA_VARIANTS.length)];
+  const hero = safePick(HERO_VARIANTS, seed % HERO_VARIANTS.length, HERO_VARIANTS[0]);
+  const cta = safePick(
+    CTA_VARIANTS,
+    Math.floor(rnd() * CTA_VARIANTS.length),
+    CTA_VARIANTS[0]
+  );
 
   // deterministisk “viewers”
   const viewers = 3 + Math.floor(rnd() * 27); // 3–29
@@ -157,7 +176,7 @@ export default function HeroLive() {
 
       <div className="text-xs opacity-60">{hero.footnote}</div>
 
-      {/* EXTRA BOX: Intern driftstatus (fyller høyde) */}
+      {/* EXTRA BOX */}
       <div className="rounded-xl border border-black/10 bg-white/70 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs font-black uppercase tracking-wide opacity-60">
