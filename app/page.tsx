@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import CampaignMotor from "./components/CampaignMotor";
 import HeroLive from "./components/HeroLive";
+import ShareEntry from "./components/ShareEntry";
 
 function PromoChip(props: {
   label: string;
@@ -137,115 +138,8 @@ function ChallengeStep(props: {
   );
 }
 
-function ChallengePanel() {
-  return (
-    <section className="border-t border-black/10 border-b border-black/10 bg-[#f5f2e7]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-        <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[2rem] border border-black/12 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <PromoChip label="Prøv systemet" tone="black" />
-              <PromoChip label="Interaktivt" value="ja" tone="red" />
-            </div>
 
-            <div className="mt-5 max-w-2xl">
-              <div className="text-[10px] font-black uppercase tracking-[0.28em] opacity-45 sm:text-[11px]">
-                Ukens utfordring
-              </div>
-
-              <h2 className="mt-2 text-3xl font-black leading-[0.95] tracking-[-0.05em] sm:text-4xl md:text-5xl">
-                Kan du fullføre
-                <br />
-                et kjøp?
-              </h2>
-
-              <p className="mt-4 text-base font-semibold leading-relaxed opacity-75 sm:text-lg">
-                Legg en vare i kurven. Gå til kassen. Se om ordren blir stoppet av
-                lager, regnskap eller virkeligheten.
-              </p>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-black/10 bg-yellow-400 p-4">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em]">
-                Mulige utfall
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.12em] sm:text-xs">
-                <span className="rounded bg-black px-2 py-1 text-yellow-300">
-                  Teoretisk fullført
-                </span>
-                <span className="rounded bg-white px-2 py-1 text-black">
-                  Stoppet av regnskap
-                </span>
-                <span className="rounded bg-red-600 px-2 py-1 text-white">
-                  Sendt til intern behandling
-                </span>
-                <span className="rounded bg-black px-2 py-1 text-yellow-300">
-                  Levert uten grunnlag
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="/butikk"
-                className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
-              >
-                PRØV Å KJØPE NOE
-                <span aria-hidden>→</span>
-              </a>
-
-              <a
-                href="/kampanjer"
-                className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
-              >
-                SE VARER UNDER PRESS
-              </a>
-            </div>
-
-            <div className="mt-4 text-xs leading-relaxed opacity-60">
-              Dette er en faktisk spillbar butikkopplevelse. Du kan åpne produkter,
-              legge varer i kurven, gå til kassen, få ordredetaljer og spore pakken
-              videre.
-            </div>
-          </div>
-
-          <div className="rounded-[2rem] border border-black/12 bg-white p-5 shadow-sm sm:p-6">
-            <div className="text-[10px] font-black uppercase tracking-[0.28em] opacity-45 sm:text-[11px]">
-              Slik fungerer det
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <ChallengeStep
-                icon={ShoppingCart}
-                number="01"
-                title="Finn en vare"
-                body="Velg et produkt under aktivt prispress før lageret rekker å bli tydelig."
-              />
-              <ChallengeStep
-                icon={ScanSearch}
-                number="02"
-                title="Legg i kurven"
-                body="Systemet registrerer kjøpsintensjon og holder håpet levende."
-              />
-              <ChallengeStep
-                icon={ReceiptText}
-                number="03"
-                title="Gå til kassen"
-                body="Betaling, lager, frakt og virkelighet behandles som separate spørsmål."
-              />
-              <ChallengeStep
-                icon={PackageSearch}
-                number="04"
-                title="Følg ordren videre"
-                body="Motta ordredetaljer. Spor pakken. Observer hvordan systemet holder ut."
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
+  
 
 export default function Home() {
   return (
@@ -366,8 +260,10 @@ export default function Home() {
       </section>
 
       {/* SHAREBAIT / ONBOARDING */}
-      <ChallengePanel />
+      
+       <ShareEntry />
 
+      
       {/* PRODUCTS */}
       <section className="bg-[#f0e7ab]">
         <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-10">

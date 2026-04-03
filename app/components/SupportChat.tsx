@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { voices } from "@/app/lib/voices";
 
-type Kind = "generic" | "price" | "shipping" | "coupon" | "stock";
-type Source = "market" | "ledger" | "system" | "user";
+type Kind =
+  | "generic"
+  | "price"
+  | "shipping"
+  | "coupon"
+  | "stock"
+  | "checkout"
+  | "conscience"
+  | "where_start"
+  | "tracking";
+
+type Source = "market" | "ledger" | "system" | "advisor" | "user";
 
 type Msg = {
   id: string;
@@ -24,7 +35,16 @@ type ChatState = {
   sessionSeed: string;
 };
 
-const STORAGE_KEY = "prishandel_support_chat_v4";
+const STORAGE_KEY = "prishandel_support_chat_v5";
+
+const QUICK_PROMPTS = [
+  "Kan jeg fullføre et kjøp?",
+  "Er dette på lager?",
+  "Hva skjer i kassen?",
+  "Har dere rabattkode?",
+  "Hva er god samvittighet?",
+  "Hvor starter jeg?",
+] as const;
 
 function uid() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -52,6 +72,46 @@ function score(seed: string, text: string, salt: string) {
 
 function detectKind(t: string): Kind {
   const s = t.toLowerCase();
+
+  if (
+    s.includes("hvor starter") ||
+    s.includes("hvordan starter") ||
+    s.includes("hva gjør jeg") ||
+    s.includes("hvor begynner") ||
+    s.includes("hvordan fungerer dette")
+  ) {
+    return "where_start";
+  }
+
+  if (
+    s.includes("kasse") ||
+    s.includes("checkout") ||
+    s.includes("fullføre kjøp") ||
+    s.includes("fullfor") ||
+    s.includes("betale") ||
+    s.includes("kan jeg kjøpe")
+  ) {
+    return "checkout";
+  }
+
+  if (
+    s.includes("god samvittighet") ||
+    s.includes("samvittighet") ||
+    s.includes("klimakompensert") ||
+    s.includes("omtanke")
+  ) {
+    return "conscience";
+  }
+
+  if (
+    s.includes("sporing") ||
+    s.includes("pakke") ||
+    s.includes("ordre") ||
+    s.includes("sendingsnummer") ||
+    s.includes("levert")
+  ) {
+    return "tracking";
+  }
 
   if (s.includes("kupong") || s.includes("kode") || s.includes("rabattkode")) {
     return "coupon";
@@ -102,22 +162,22 @@ function buildInitialState(): ChatState {
       {
         id: uid(),
         role: "bot",
+        source: "advisor",
+        text: "Hei. Jeg er intern handelsrådgiver. Jeg kan forklare prispress, lagerusikkerhet, kasseflyt og god samvittighet uten å garantere klarhet.",
+        ts: now,
+      },
+      {
+        id: uid(),
+        role: "bot",
         source: "market",
         text: "📣 Marked: Kundeservice er åpen for tolkning.",
-        ts: now,
+        ts: now + 1,
       },
       {
         id: uid(),
         role: "bot",
         source: "ledger",
         text: "🧾 Regnskap: Henvendelser registreres før de forstås.",
-        ts: now + 1,
-      },
-      {
-        id: uid(),
-        role: "bot",
-        source: "system",
-        text: "⚡ System: Tvistelag aktivert. Svar kan avvike internt.",
         ts: now + 2,
       },
     ],
@@ -130,14 +190,22 @@ function buildInitialState(): ChatState {
   };
 }
 
-function systemLine(text: string): Msg {
+function botLine(source: Source, text: string): Msg {
   return {
     id: uid(),
     role: "bot",
-    source: "system",
+    source,
     text,
     ts: Date.now(),
   };
+}
+
+function systemLine(text: string): Msg {
+  return botLine("system", text);
+}
+
+function advisorLine(text: string): Msg {
+  return botLine("advisor", text);
 }
 
 function marketLine(kind: Kind): Msg {
@@ -145,7 +213,11 @@ function marketLine(kind: Kind): Msg {
     id: uid(),
     role: "bot",
     source: "market",
-    text: voices.market.say(kind),
+    text: voices.market.say(
+      kind === "checkout" || kind === "conscience" || kind === "where_start" || kind === "tracking"
+        ? "generic"
+        : kind
+    ),
     ts: Date.now(),
   };
 }
@@ -155,7 +227,11 @@ function ledgerLine(kind: Kind): Msg {
     id: uid(),
     role: "bot",
     source: "ledger",
-    text: voices.ledger.say(kind),
+    text: voices.ledger.say(
+      kind === "checkout" || kind === "conscience" || kind === "where_start" || kind === "tracking"
+        ? "generic"
+        : kind
+    ),
     ts: Date.now(),
   };
 }
@@ -165,6 +241,50 @@ function classifyPressureLabel(value: number) {
   if (value >= 70) return "høyt";
   if (value >= 50) return "aktivt";
   return "stabilt";
+}
+
+function buildAdvisorGuidance(kind: Kind, userText: string) {
+  const lower = userText.toLowerCase();
+
+  switch (kind) {
+    case "where_start":
+      return "Start med et produkt under aktivt prispress. Legg det i kurven. Gå deretter til kassen og se om systemet tåler initiativet.";
+    case "checkout":
+      return "Kassen behandler betaling, lager, frakt og virkelighet som separate spørsmål. Det er fullt mulig å komme langt uten å komme i mål.";
+    case "conscience":
+      return "God samvittighet er et tillegg som reduserer opplevd belastning uten å forbedre produkt, levering eller faktisk konsekvens.";
+    case "tracking":
+      return "Sporing brukes best etter at ordren har fått et utfall. Den gir ikke nødvendigvis bedre svar, men den gir flere.";
+    case "stock":
+      return "Lagerstatus bør forstås som en stemning med administrative konsekvenser. Utsolgt betyr ikke inaktivt.";
+    case "shipping":
+      return "Levering omtales offensivt, men bekreftes forsiktig. Ubestemt er fortsatt en gyldig tilstand.";
+    case "coupon":
+      return "Rabattkoder registreres gjerne, men prisendring er fortsatt et eget spørsmål.";
+    case "price":
+      return "Prisene er satt for å skape bevegelse. Om de er forsvarlige, behandles i et annet lag.";
+    default:
+      if (lower.includes("ekte butikk") || lower.includes("er dette ekte")) {
+        return "Dette er en spillbar butikkopplevelse med ekte klikkflyt og kunstig trygghet.";
+      }
+      return "Jeg kan hjelpe deg med å starte handelen, forstå kassen eller avklare hvorfor ting fortsatt er utsolgt.";
+  }
+}
+
+function buildActionNudge(kind: Kind) {
+  switch (kind) {
+    case "where_start":
+    case "price":
+    case "stock":
+      return "Forslag: åpne et produkt eller gå rett til varer under press.";
+    case "checkout":
+    case "conscience":
+      return "Forslag: legg noe i kurven og prøv kassen.";
+    case "tracking":
+      return "Forslag: fullfør en handel først, og bruk sporing etterpå.";
+    default:
+      return "Forslag: prøv å kjøpe noe og se hvor langt ordren kommer.";
+  }
 }
 
 function buildReplies(userText: string, state: ChatState) {
@@ -210,6 +330,23 @@ function buildReplies(userText: string, state: ChatState) {
       marketPressure += 4;
       ledgerPressure += 10;
       break;
+    case "checkout":
+      marketPressure += 6;
+      ledgerPressure += 11;
+      escalation += 1;
+      break;
+    case "conscience":
+      marketPressure += 5;
+      ledgerPressure += 7;
+      break;
+    case "tracking":
+      marketPressure += 2;
+      ledgerPressure += 6;
+      break;
+    case "where_start":
+      marketPressure += 4;
+      ledgerPressure += 3;
+      break;
     default:
       marketPressure += 2;
       ledgerPressure += 2;
@@ -231,16 +368,14 @@ function buildReplies(userText: string, state: ChatState) {
 
   const replies: Msg[] = [];
 
+  replies.push(advisorLine(buildAdvisorGuidance(kind, userText)));
+
   if (repeatCount >= 2) {
-    replies.push(
-      systemLine("⚡ System: Henvendelsen er registrert som gjentakende.")
-    );
+    replies.push(systemLine("⚡ System: Henvendelsen er registrert som gjentakende."));
   }
 
   if (escalation >= 3 && ledgerPressure >= 70) {
-    replies.push(
-      systemLine("⚡ System: Saken er eskalert internt uten fremdriftsløfte.")
-    );
+    replies.push(systemLine("⚡ System: Saken er eskalert internt uten fremdriftsløfte."));
   }
 
   const forceLedger = mentionsLedger || ledgerPressure > 82;
@@ -252,35 +387,26 @@ function buildReplies(userText: string, state: ChatState) {
   if (forceLedger) {
     replies.push(ledgerLine(kind));
   } else if (forceDuel) {
-    const duel = voices.duel(kind).map((x) => ({
-      id: uid(),
-      role: "bot" as const,
-      source: x.text.trim().startsWith("🧾") ? ("ledger" as const) : ("market" as const),
-      text: x.text,
-      ts: Date.now(),
-    }));
-    replies.push(...duel);
+    replies.push(marketLine(kind));
+    replies.push(ledgerLine(kind));
   } else {
     replies.push(marketLine(kind));
   }
 
   if (marketScore < 16 && !forceLedger) {
-    replies.push(
-      systemLine("⚡ System: Marked har valgt å stå i formuleringen.")
-    );
+    replies.push(systemLine("⚡ System: Marked har valgt å stå i formuleringen."));
   }
 
   if (ledgerScore < 14 && !mentionsLedger) {
     replies.push(
-      {
-        id: uid(),
-        role: "bot",
-        source: "ledger",
-        text: "🧾 Regnskap: Dette noteres uten at det hjelper marginene.",
-        ts: Date.now(),
-      }
+      botLine(
+        "ledger",
+        "🧾 Regnskap: Dette noteres uten at det hjelper marginene."
+      )
     );
   }
+
+  replies.push(advisorLine(buildActionNudge(kind)));
 
   const nextState: ChatState = {
     ...state,
@@ -295,7 +421,8 @@ function buildReplies(userText: string, state: ChatState) {
 }
 
 function messageDelay(replies: Msg[]) {
-  if (replies.length >= 3) return 1100;
+  if (replies.length >= 4) return 1250;
+  if (replies.length === 3) return 1000;
   if (replies.length === 2) return 850;
   return 650;
 }
@@ -304,7 +431,7 @@ function typingLabel(state: ChatState) {
   if (state.escalation >= 3) return "Eskalering pågår…";
   if (state.ledgerPressure > state.marketPressure) return "Regnskap svarer…";
   if (state.marketPressure > state.ledgerPressure + 10) return "Marked formulerer…";
-  return "Tvistelag skriver…";
+  return "Handelsrådgiver vurderer…";
 }
 
 function bubbleClasses(msg: Msg) {
@@ -320,6 +447,10 @@ function bubbleClasses(msg: Msg) {
     return "bg-white text-black rounded-bl-md border-black/15";
   }
 
+  if (msg.source === "advisor") {
+    return "bg-neutral-100 text-black rounded-bl-md border-black/10";
+  }
+
   return "bg-red-50 text-black rounded-bl-md border-red-200";
 }
 
@@ -327,7 +458,72 @@ function sourceLabel(msg: Msg) {
   if (msg.role === "user") return "Du";
   if (msg.source === "market") return "Marked";
   if (msg.source === "ledger") return "Regnskap";
+  if (msg.source === "advisor") return "Rådgiver";
   return "System";
+}
+
+function QuickActionLinks(props: { kind: Kind }) {
+  if (props.kind === "where_start" || props.kind === "price" || props.kind === "stock") {
+    return (
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          href="/butikk"
+          className="rounded-lg bg-black px-3 py-2 text-xs font-black text-white hover:opacity-90"
+        >
+          Se varer →
+        </Link>
+        <Link
+          href="/kampanjer"
+          className="rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-black hover:bg-black/5"
+        >
+          Se kampanjer
+        </Link>
+      </div>
+    );
+  }
+
+  if (props.kind === "checkout" || props.kind === "conscience") {
+    return (
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          href="/kurv"
+          className="rounded-lg bg-red-600 px-3 py-2 text-xs font-black text-white hover:opacity-90"
+        >
+          Åpne kurven →
+        </Link>
+        <Link
+          href="/butikk"
+          className="rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-black hover:bg-black/5"
+        >
+          Finn vare
+        </Link>
+      </div>
+    );
+  }
+
+  if (props.kind === "tracking") {
+    return (
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          href="/kurv"
+          className="rounded-lg bg-black px-3 py-2 text-xs font-black text-white hover:opacity-90"
+        >
+          Start handel →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      <Link
+        href="/butikk"
+        className="rounded-lg bg-black px-3 py-2 text-xs font-black text-white hover:opacity-90"
+      >
+        Prøv å kjøpe noe →
+      </Link>
+    </div>
+  );
 }
 
 export default function SupportChat() {
@@ -386,8 +582,8 @@ export default function SupportChat() {
     setState(fresh);
   }
 
-  function send() {
-    const text = input.trim();
+  function submitText(textArg?: string) {
+    const text = (textArg ?? input).trim();
     if (!text) return;
 
     if (text.toLowerCase() === "reset" || text.toLowerCase() === "slett") {
@@ -433,18 +629,18 @@ export default function SupportChat() {
           onClick={() => setOpen(true)}
           className="rounded-full border border-black/10 bg-green-600 px-4 py-3 font-black text-white shadow-lg hover:opacity-95"
         >
-          Kundeservice
+          Spør handelsrådgiver
         </button>
       )}
 
       {open && (
-        <div className="w-[360px] max-w-[94vw] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
+        <div className="w-[380px] max-w-[94vw] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
           <div className="border-b border-black/10 bg-red-600 px-4 py-3 text-white">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-black">Kundeservice</div>
+                <div className="font-black">Intern handelsrådgiver</div>
                 <div className="mt-0.5 text-xs opacity-90">
-                  Tvistelag aktivt • respons kan foreligge internt
+                  Marked, regnskap og system svarer etter beste evne og interesse
                 </div>
               </div>
 
@@ -477,32 +673,68 @@ export default function SupportChat() {
             </div>
           </div>
 
+          <div className="border-b border-black/10 bg-neutral-50 px-3 py-3">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-wide opacity-55">
+              Hurtigspørsmål
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => submitText(prompt)}
+                  className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] font-black hover:bg-black/5"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div
             ref={listRef}
-            className="h-[360px] overflow-y-auto bg-neutral-50 px-3 py-3"
+            className="h-[380px] overflow-y-auto bg-neutral-50 px-3 py-3"
           >
             <div className="space-y-2">
-              {state.msgs.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[88%] rounded-2xl border px-3 py-2 text-sm ${bubbleClasses(msg)}`}
-                  >
-                    <div className="mb-1 text-[10px] font-black uppercase tracking-wide opacity-55">
-                      {sourceLabel(msg)}
+              {state.msgs.map((msg, index) => {
+                const showActions =
+                  msg.role === "bot" &&
+                  msg.source === "advisor" &&
+                  index === state.msgs.length - 1;
+
+                return (
+                  <div key={msg.id}>
+                    <div
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[88%] rounded-2xl border px-3 py-2 text-sm ${bubbleClasses(
+                          msg
+                        )}`}
+                      >
+                        <div className="mb-1 text-[10px] font-black uppercase tracking-wide opacity-55">
+                          {sourceLabel(msg)}
+                        </div>
+                        <div>{msg.text}</div>
+                        <div className="mt-1 text-[10px] opacity-45">
+                          {new Date(msg.ts).toLocaleTimeString("nb-NO", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div>{msg.text}</div>
-                    <div className="mt-1 text-[10px] opacity-45">
-                      {new Date(msg.ts).toLocaleTimeString("nb-NO", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
+
+                    {showActions && (
+                      <div className="mt-1 flex justify-start">
+                        <div className="max-w-[88%]">
+                          <QuickActionLinks kind={state.lastKind} />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {typing && (
                 <div className="flex justify-start">
@@ -526,12 +758,12 @@ export default function SupportChat() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onKeyDown={(e) => e.key === "Enter" && submitText()}
                 placeholder="Beskriv avviket ditt…"
                 className="flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm font-medium placeholder:opacity-50"
               />
               <button
-                onClick={send}
+                onClick={() => submitText()}
                 className="rounded-lg bg-green-600 px-4 py-2 font-black text-white hover:opacity-95"
               >
                 Send
@@ -540,7 +772,7 @@ export default function SupportChat() {
           </div>
 
           <div className="px-3 pb-3 text-[11px] opacity-60">
-            Ved å bruke chat godtar du intern uenighet, forskjøvet ansvar og mulig eskalering.
+            Ved å bruke rådgiveren godtar du intern uenighet, forskjøvet ansvar og mulig eskalering.
           </div>
         </div>
       )}
