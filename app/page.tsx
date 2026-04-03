@@ -320,7 +320,7 @@ export default function Home() {
           </div>
         </div>
 
-        <ProductGrid limit={6} showSearch={false} />
+        <ProductGrid limit={6} />
       </section>
 
       {/* FOOTNOTE AREA */}
