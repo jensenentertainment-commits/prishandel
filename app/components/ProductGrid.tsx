@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { ShoppingCart, Receipt } from "lucide-react";
+import { ShoppingCart, Receipt, Siren, TriangleAlert } from "lucide-react";
 import { Icon } from "./Icon";
 import { PRODUCTS, getLeaks, type Product } from "../lib/products";
 import { useCart } from "./cart/CartProvider";
@@ -33,13 +33,48 @@ function pickSeed(extra = "") {
   return hashString(`${cycle}|${extra}`);
 }
 
+function pick<T>(arr: readonly T[], rnd: () => number) {
+  return arr[Math.floor(rnd() * arr.length)];
+}
+
 const ACCOUNTING_VARIANTS = [
-  "Pris er godkjent for visning.",
-  "Avvik er notert uten tiltak.",
-  "Tall er registrert.",
-  "Beregning er gjennomført.",
-  "Regnskap er orientert.",
+  "Prisen anses som offensiv.",
+  "Marginen er observert uten støtte.",
+  "Avvik er akseptert av hensyn til flyt.",
+  "Tallene står foreløpig uimotsagt.",
+  "Prisnivået er godkjent for visning, ikke nødvendigvis forsvar.",
 ] as const;
+
+const PRESSURE_BADGES = [
+  "Prisfall",
+  "Operativt press",
+  "Midlertidig svekket pris",
+  "Regnskapskritisk",
+  "Aktiv kampanje",
+] as const;
+
+const STOCK_BADGES = [
+  "Uavklart",
+  "Ustabil",
+  "Sensitiv",
+  "Teoretisk",
+] as const;
+
+function getBadge(now: number, before: number) {
+  const diff = Math.max(0, before - now);
+  if (diff <= 0) return "Pris vurdert";
+  if (diff < 100) return "Mildt prisfall";
+  if (diff < 300) return "Aktivt prisfall";
+  return "Aggressivt prisfall";
+}
+
+function getPriceTone(now: number, before: number) {
+  const ratio = before > 0 ? (before - now) / before : 0;
+  if (ratio >= 0.7) return "Kritisk lavt";
+  if (ratio >= 0.45) return "Urovekkende lavt";
+  if (ratio >= 0.25) return "Lavt nok";
+  return "Registrert";
+}
 
 export default function ProductGrid({
   limit,
@@ -67,7 +102,7 @@ export default function ProductGrid({
         ))}
 
         {items.length === 0 && (
-          <div className="rounded-2xl border border-black/12 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-3">
+          <div className="rounded-3xl border border-black/12 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-3">
             <div className="text-lg font-black">Ingen varer tilgjengelig</div>
             <div className="mt-3 space-y-2 text-sm opacity-80">
               <div>Markedsavdelingen anbefaler fortsatt optimisme.</div>
@@ -77,8 +112,8 @@ export default function ProductGrid({
         )}
       </div>
 
-      <div className="mt-6 text-xs opacity-60">
-        Rabatter gjelder kun i teorien. Handlekraft vurderes separat.
+      <div className="mt-6 text-xs leading-relaxed opacity-60">
+        Rabatter gjelder kun i teorien. Handlekraft, tilgjengelighet og konsekvens vurderes separat.
       </div>
     </section>
   );
@@ -91,27 +126,22 @@ function ProductCard({ p }: { p: Product }) {
   const seed = pickSeed(p.slug);
   const rnd = prng(seed);
 
-  const accountingIndex = Math.max(
-    0,
-    Math.min(
-      ACCOUNTING_VARIANTS.length - 1,
-      Math.floor(rnd() * ACCOUNTING_VARIANTS.length)
-    )
-  );
-
-  const accountingText =
-    ACCOUNTING_VARIANTS[accountingIndex] ?? "Tall er registrert.";
+  const accountingText = pick(ACCOUNTING_VARIANTS, rnd);
+  const pressureBadge = pick(PRESSURE_BADGES, rnd);
+  const stockBadge = pick(STOCK_BADGES, rnd);
 
   const discount = Math.max(
     10,
     Math.min(97, Math.round(((p.before - p.now) / p.before) * 100))
   );
 
+  const priceTone = getPriceTone(p.now, p.before);
+
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/12 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="relative flex h-56 items-end justify-between overflow-hidden border-b border-black/10 bg-[#f7f4ea] p-4 md:h-64">
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-black/12 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="relative flex h-52 items-end justify-between overflow-hidden border-b border-black/10 bg-[#f7f4ea] p-4 sm:h-56 md:h-64">
         <span className="absolute left-3 top-3 z-10 rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-300">
-          Kampanje
+          {pressureBadge}
         </span>
 
         <span className="absolute right-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
@@ -125,44 +155,72 @@ function ProductCard({ p }: { p: Product }) {
         />
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex min-h-[132px] items-start justify-between gap-3">
-          <div>
-            <h3 className="text-[1.75rem] font-black leading-[1] tracking-tight">
+      <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:min-h-[140px] sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-[1.55rem] font-black leading-[0.95] tracking-tight sm:text-[1.75rem]">
               {p.title}
             </h3>
             <p className="mt-2 text-sm leading-relaxed opacity-80">{p.short}</p>
           </div>
 
-          <div className="shrink-0 text-right">
+          <div className="shrink-0 text-left sm:text-right">
             <div className="text-2xl font-black leading-none">{p.now},-</div>
             <div className="mt-1 text-[12px] line-through opacity-60">
               {p.before},-
             </div>
+            <div className="mt-2 inline-flex rounded-full bg-yellow-300 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-black">
+              {priceTone}
+            </div>
           </div>
         </div>
 
-        <div className="min-h-[88px] rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
-          <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-            <Icon icon={Receipt} />
-            Regnskap
+        <div className="grid gap-3">
+          <div className="rounded-2xl border border-black/10 bg-[#f7f4ea] p-3">
+            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide">
+              <Icon icon={Receipt} />
+              Regnskap
+            </div>
+            <div className="mt-1 text-sm leading-relaxed opacity-80">
+              {accountingText}
+            </div>
           </div>
-          <div className="mt-1 text-sm opacity-80">{accountingText}</div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex rounded-full bg-black px-2 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-300">
+                Lager: {stockBadge}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-black/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide">
+                <Icon icon={TriangleAlert} />
+                {getBadge(p.now, p.before)}
+              </span>
+            </div>
+
+            <ul className="mt-3 space-y-1 text-[12px] font-semibold leading-relaxed">
+              {getLeaks(p.slug, 2).map((line) => (
+                <li key={line}>
+                  <span className="opacity-50">•</span>{" "}
+                  <span className="opacity-80">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="mt-auto space-y-3">
+        <div className="mt-auto space-y-3 pt-1">
           <div className="flex items-stretch gap-2">
             <Link
               href={`/produkt/${p.slug}`}
-              className="flex min-h-[56px] flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-4 text-center text-sm font-black tracking-wide text-white transition hover:opacity-90"
+              className="flex min-h-[56px] flex-1 items-center justify-center rounded-2xl bg-red-600 px-4 py-4 text-center text-sm font-black tracking-wide text-white transition hover:opacity-90"
             >
-              <span>Se produkt →</span>
+              <span>Vurder produkt →</span>
             </Link>
 
             <button
               type="button"
               onClick={() => add(p.slug, 1)}
-              className="relative inline-flex min-h-[56px] items-center justify-center rounded-xl border border-black/20 bg-white px-4 py-4 font-black text-black transition hover:bg-black/5"
+              className="relative inline-flex min-h-[56px] items-center justify-center rounded-2xl border border-black/20 bg-white px-4 py-4 font-black text-black transition hover:bg-black/5"
               title={inCartQty > 0 ? `I kurv (${inCartQty})` : "Legg i handlekurv"}
             >
               <Icon icon={ShoppingCart} />
@@ -174,18 +232,14 @@ function ProductCard({ p }: { p: Product }) {
             </button>
           </div>
 
-          <div className="rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
-            <div className="text-[11px] font-black uppercase tracking-wide opacity-70">
-              Systemnotater
+          <div className="rounded-2xl border border-black/10 bg-neutral-50 p-3">
+            <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-70">
+              <Icon icon={Siren} />
+              Salgssignal
             </div>
-            <ul className="mt-2 space-y-1 text-[12px] font-semibold">
-              {getLeaks(p.slug, 2).map((line) => (
-                <li key={line}>
-                  <span className="opacity-60">•</span>{" "}
-                  <span className="opacity-80">{line}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-1 text-sm leading-relaxed opacity-80">
+              Produktet anses som aktuelt så lenge prisen kan opprettholdes og lageret unngår avklaring.
+            </div>
           </div>
         </div>
       </div>

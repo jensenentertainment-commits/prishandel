@@ -3,23 +3,25 @@ import ProductGrid from "./components/ProductGrid";
 import { Icon } from "./components/Icon";
 import {
   Truck,
-  Zap,
   CreditCard,
   Flame,
-  BadgePercent,
-  Timer,
+  Megaphone,
+  TriangleAlert,
   ShieldCheck,
   Siren,
-  TriangleAlert,
-  Megaphone,
-  Receipt,
-  BadgeAlert,
-  CircleAlert,
+  ShoppingCart,
+  ScanSearch,
+  ReceiptText,
+  PackageSearch,
 } from "lucide-react";
 import CampaignMotor from "./components/CampaignMotor";
 import HeroLive from "./components/HeroLive";
 
-function PromoChip(props: { label: string; value?: string; tone?: "black" | "white" | "red" | "green" }) {
+function PromoChip(props: {
+  label: string;
+  value?: string;
+  tone?: "black" | "white" | "red" | "green";
+}) {
   const toneClass =
     props.tone === "red"
       ? "bg-red-600 text-white border-red-700/40"
@@ -30,7 +32,9 @@ function PromoChip(props: { label: string; value?: string; tone?: "black" | "whi
       : "bg-white text-black border-black/12";
 
   return (
-    <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] shadow-sm ${toneClass}`}>
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] shadow-sm sm:text-[11px] ${toneClass}`}
+    >
       <span>{props.label}</span>
       {props.value ? <span className="opacity-80">{props.value}</span> : null}
     </div>
@@ -54,7 +58,7 @@ function PressureCard(props: {
 
   return (
     <div className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
-      <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] opacity-85">
+      <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] opacity-85 sm:text-[11px]">
         <Icon icon={props.icon} />
         {props.title}
       </div>
@@ -70,41 +74,176 @@ function InternalSignal(props: {
 }) {
   return (
     <div className="rounded-2xl border border-black/12 bg-white p-4 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.22em] opacity-50">
+      <div className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45 sm:text-[11px]">
         {props.label}
       </div>
-      <div className="mt-2 text-lg font-black leading-tight">{props.value}</div>
+      <div className="mt-2 text-lg font-black leading-tight sm:text-xl">{props.value}</div>
       <div className="mt-2 text-sm leading-relaxed opacity-72">{props.note}</div>
     </div>
   );
 }
 
-function AlertRow() {
+function InternalMemo() {
   return (
-    <div className="rounded-2xl border border-black/12 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] opacity-55">
-        <Icon icon={BadgeAlert} />
-        Prisvarsel
+    <div className="rounded-3xl border border-black bg-black p-5 text-yellow-300 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] opacity-70 sm:text-[11px]">
+            Intern handelsmelding
+          </div>
+          <div className="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">
+            Kampanjen fortsetter,
+            <br />
+            også ved tvil.
+          </div>
+        </div>
+
+        <span className="rounded bg-yellow-300 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-black sm:text-[11px]">
+          Operativt
+        </span>
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
-          <div className="text-xs font-black uppercase tracking-wide opacity-55">Sist observert</div>
-          <div className="mt-2 text-xl font-black">Prisfall</div>
-          <div className="mt-1 text-sm opacity-70">Registrert uten ro.</div>
+      <div className="mt-4 space-y-2 text-sm leading-relaxed text-white/82">
+        <div>📣 Marked: “Vi trenger bare mer trykk.”</div>
+        <div>🧾 Regnskap: “Vi trenger mindre aktivitet.”</div>
+        <div>⚠️ Ledelsen: “Begge anses som innspill.”</div>
+      </div>
+    </div>
+  );
+}
+
+function ChallengeStep(props: {
+  icon: any;
+  number: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black text-yellow-300">
+          <Icon icon={props.icon} />
         </div>
-        <div className="rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
-          <div className="text-xs font-black uppercase tracking-wide opacity-55">Tiltak</div>
-          <div className="mt-2 text-xl font-black">Fortsetter</div>
-          <div className="mt-1 text-sm opacity-70">Kampanjen anses fortsatt operativ.</div>
-        </div>
-        <div className="rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
-          <div className="text-xs font-black uppercase tracking-wide opacity-55">Konsekvens</div>
-          <div className="mt-2 text-xl font-black">Trykk</div>
-          <div className="mt-1 text-sm opacity-70">Lettelse er ikke planlagt.</div>
+
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45 sm:text-[11px]">
+            Steg {props.number}
+          </div>
+          <div className="mt-1 text-sm font-black sm:text-base">{props.title}</div>
+          <div className="mt-1 text-sm leading-relaxed opacity-75">{props.body}</div>
         </div>
       </div>
     </div>
+  );
+}
+
+function ChallengePanel() {
+  return (
+    <section className="border-t border-black/10 border-b border-black/10 bg-[#f5f2e7]">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+        <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[2rem] border border-black/12 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <PromoChip label="Prøv systemet" tone="black" />
+              <PromoChip label="Interaktivt" value="ja" tone="red" />
+            </div>
+
+            <div className="mt-5 max-w-2xl">
+              <div className="text-[10px] font-black uppercase tracking-[0.28em] opacity-45 sm:text-[11px]">
+                Ukens utfordring
+              </div>
+
+              <h2 className="mt-2 text-3xl font-black leading-[0.95] tracking-[-0.05em] sm:text-4xl md:text-5xl">
+                Kan du fullføre
+                <br />
+                et kjøp?
+              </h2>
+
+              <p className="mt-4 text-base font-semibold leading-relaxed opacity-75 sm:text-lg">
+                Legg en vare i kurven. Gå til kassen. Se om ordren blir stoppet av
+                lager, regnskap eller virkeligheten.
+              </p>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-black/10 bg-yellow-400 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em]">
+                Mulige utfall
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.12em] sm:text-xs">
+                <span className="rounded bg-black px-2 py-1 text-yellow-300">
+                  Teoretisk fullført
+                </span>
+                <span className="rounded bg-white px-2 py-1 text-black">
+                  Stoppet av regnskap
+                </span>
+                <span className="rounded bg-red-600 px-2 py-1 text-white">
+                  Sendt til intern behandling
+                </span>
+                <span className="rounded bg-black px-2 py-1 text-yellow-300">
+                  Levert uten grunnlag
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <a
+                href="/butikk"
+                className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
+              >
+                PRØV Å KJØPE NOE
+                <span aria-hidden>→</span>
+              </a>
+
+              <a
+                href="/kampanjer"
+                className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
+              >
+                SE VARER UNDER PRESS
+              </a>
+            </div>
+
+            <div className="mt-4 text-xs leading-relaxed opacity-60">
+              Dette er en faktisk spillbar butikkopplevelse. Du kan åpne produkter,
+              legge varer i kurven, gå til kassen, få ordredetaljer og spore pakken
+              videre.
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/12 bg-white p-5 shadow-sm sm:p-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.28em] opacity-45 sm:text-[11px]">
+              Slik fungerer det
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <ChallengeStep
+                icon={ShoppingCart}
+                number="01"
+                title="Finn en vare"
+                body="Velg et produkt under aktivt prispress før lageret rekker å bli tydelig."
+              />
+              <ChallengeStep
+                icon={ScanSearch}
+                number="02"
+                title="Legg i kurven"
+                body="Systemet registrerer kjøpsintensjon og holder håpet levende."
+              />
+              <ChallengeStep
+                icon={ReceiptText}
+                number="03"
+                title="Gå til kassen"
+                body="Betaling, lager, frakt og virkelighet behandles som separate spørsmål."
+              />
+              <ChallengeStep
+                icon={PackageSearch}
+                number="04"
+                title="Følg ordren videre"
+                body="Motta ordredetaljer. Spor pakken. Observer hvordan systemet holder ut."
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -113,33 +252,52 @@ export default function Home() {
     <main className="bg-[#f0e7ab] text-black">
       {/* HERO */}
       <section className="border-b border-black/12 bg-[linear-gradient(180deg,#f4d72d_0%,#f4e39a_38%,#f4ecd0_100%)]">
-        <div className="max-w-6xl mx-auto px-4 py-10 md:py-14">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.06fr_0.94fr] lg:items-start">
-            <div className="rounded-[2rem] border border-black/15 bg-[#f5f2e7] p-6 shadow-[0_12px_40px_rgba(0,0,0,0.08)] md:p-8">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10 lg:py-14">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
+            {/* LEFT */}
+            <div className="rounded-[2rem] border border-black/15 bg-[#f5f2e7] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.08)] sm:p-6 lg:p-8">
               <div className="flex flex-wrap items-center gap-2">
                 <PromoChip label="Aktiv handelsstatus" tone="black" />
                 <PromoChip label="Live" value="pågår" tone="red" />
                 <PromoChip label="Regnskap" value="varslet" tone="white" />
               </div>
 
-              <div className="mt-5 max-w-3xl">
-                <div className="text-[11px] font-black uppercase tracking-[0.28em] opacity-45">
+              <div className="mt-5 max-w-2xl">
+                <div className="text-[10px] font-black uppercase tracking-[0.28em] opacity-45 sm:text-[11px]">
                   Prishandel.no
                 </div>
 
-                <h1 className="mt-3 text-5xl font-black leading-[0.86] tracking-[-0.06em] md:text-7xl">
+                <h1 className="mt-3 text-4xl font-black leading-[0.9] tracking-[-0.06em] sm:text-5xl md:text-6xl xl:text-7xl">
                   Prisene ned.
                   <br />
                   Verdigheten også.
                 </h1>
 
-                <p className="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-black/74">
-                  Kampanjen pågår. Vi justerer underveis. Resultatet vurderes senere.
+                <p className="mt-4 max-w-xl text-base font-semibold leading-relaxed text-black/72 sm:text-lg">
+                  Aggressivt prispress. Uklart lager. Full kampanjevilje. Gå inn før
+                  noen roer seg ned.
                 </p>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-black/15 bg-yellow-400 px-4 py-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="/butikk"
+                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
+                >
+                  SE DAGENS PRISFALL
+                  <span aria-hidden>→</span>
+                </a>
+
+                <a
+                  href="/kampanjer"
+                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
+                >
+                  ÅPNE KAMPANJEN
+                </a>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-black/15 bg-yellow-400 px-4 py-4 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
                   <span className="inline-flex items-center gap-2 rounded bg-black px-2 py-1 text-yellow-300">
                     <Icon icon={Flame} />
                     Kampanje aktiv
@@ -148,42 +306,26 @@ export default function Home() {
                   <span className="opacity-35">•</span>
                   <span>Prisfall registrert</span>
                   <span className="opacity-35">•</span>
-                  <span>Utsolgt tolkes fortsatt offensivt</span>
+                  <span>Lager vurderes separat</span>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[1.5rem] border border-black/12 bg-white p-4 shadow-sm">
-                <HeroLive />
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <PressureCard
                   icon={Truck}
                   title="Frakt"
-                  body="Gratis over 499,-. Under 499,- finnes det fortsatt håp."
+                  body="Gratis over 499,-. Under 499,- finnes det fortsatt press."
                   tone="white"
-                />
-                <PressureCard
-                  icon={Zap}
-                  title="Levering"
-                  body="Lynrask* der logistikk, vilje og klima tillater det."
-                  tone="white"
-                />
-                <PressureCard
-                  icon={BadgePercent}
-                  title="Pris"
-                  body="Gjelder i teorien. Teorien kan bli justert."
-                  tone="yellow"
                 />
                 <PressureCard
                   icon={CreditCard}
                   title="Betaling"
-                  body="Vipps/Klarna* mentalt. Kasseløsning er fortsatt offensiv."
+                  body="Vipps og Klarna omtales offensivt. Kassen er fortsatt under påvirkning."
                   tone="red"
                 />
               </div>
 
-              <div className="mt-4 text-[11px] opacity-60">
+              <div className="mt-4 text-[11px] leading-relaxed opacity-60">
                 *Vilkår gjelder der det passer oss. Les mer i{" "}
                 <a className="font-black underline" href="/vilkar">
                   vilkår
@@ -192,42 +334,17 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <CampaignMotor />
-
-              <div className="rounded-2xl border border-black bg-black p-5 text-yellow-300 shadow-[0_12px_40px_rgba(0,0,0,0.16)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.22em] opacity-70">
-                      Intern handelsmelding
-                    </div>
-                    <div className="mt-2 text-2xl font-black leading-tight text-white">
-                      Kampanjen fortsetter,
-                      <br />
-                      selv ved tvil.
-                    </div>
-                  </div>
-                  <span className="rounded bg-yellow-300 px-2 py-1 text-[11px] font-black uppercase tracking-wide text-black">
-                    Operativt
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-2 text-sm leading-relaxed text-white/82">
-                  <div>📣 Marked: “Vi trenger bare mer trykk.”</div>
-                  <div>🧾 Regnskap: “Vi trenger mindre aktivitet.”</div>
-                  <div>⚠️ Ledelsen: “Begge anses som innspill.”</div>
-                </div>
-              </div>
-
-              <AlertRow />
+            {/* RIGHT / SHOWPIECE */}
+            <div className="rounded-[2rem] border border-black/12 bg-white p-4 shadow-[0_12px_40px_rgba(0,0,0,0.10)] sm:p-5 lg:p-6">
+              <HeroLive />
             </div>
           </div>
         </div>
 
         {/* PRESSURE STRIP */}
         <div className="border-t border-black/15 bg-black text-yellow-300">
-          <div className="max-w-6xl mx-auto px-4 py-3">
-            <div className="flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-[0.16em]">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-[0.16em] sm:text-xs">
               <span className="inline-flex items-center gap-2 rounded bg-yellow-300 px-2 py-1 text-black">
                 <Icon icon={Megaphone} />
                 Pågående trykk
@@ -240,34 +357,85 @@ export default function Home() {
                 Se kampanjer →
               </a>
               <span className="opacity-35">•</span>
-              <a className="underline" href="/vilkar">
-                Les vilkår →
+              <a className="underline" href="/lager">
+                Intern lagerstatus →
               </a>
             </div>
           </div>
         </div>
       </section>
 
+      {/* SHAREBAIT / ONBOARDING */}
+      <ChallengePanel />
+
+      {/* PRODUCTS */}
+      <section className="bg-[#f0e7ab]">
+        <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-10">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45 sm:text-[11px]">
+                Aktivt utvalg
+              </div>
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl md:text-5xl">
+                Dagens prisfall
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed opacity-72 sm:text-base">
+                Varer under aktiv påvirkning. Prisene er midlertidige. Presset er
+                varig.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a
+                href="/kampanjer"
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:opacity-90"
+              >
+                Se kampanjer →
+              </a>
+              <a
+                href="/lager"
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
+              >
+                Intern lagerstatus
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <ProductGrid limit={6} />
+      </section>
+
+      {/* PAYOFF LAYER */}
+      <section className="border-t border-black/10 bg-[#f5f2e7]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+            <CampaignMotor />
+            <InternalMemo />
+          </div>
+        </div>
+      </section>
+
       {/* INTERNAL SIGNALS */}
-      <section className="border-b border-black/10 bg-[#f5f2e7]">
-        <div className="max-w-6xl mx-auto px-4 py-10">
+      <section className="border-t border-black/10 bg-[#f0e7ab]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.8fr] md:items-start">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] opacity-45">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45 sm:text-[11px]">
                 Interne signaler
               </div>
-              <h2 className="mt-2 text-4xl font-black tracking-[-0.04em] md:text-5xl">
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl md:text-5xl">
                 Handelsmaskinen er våken.
               </h2>
             </div>
-            <div className="pt-1 text-base leading-relaxed opacity-70">
-              Prishandel fungerer best når kampanjen pågår, lagersituasjonen er uklar og ingen helt vil ta det endelige ansvaret.
+            <div className="pt-1 text-sm leading-relaxed opacity-70 sm:text-base">
+              Prishandel fungerer best når kampanjen pågår, lagersituasjonen er uklar
+              og ingen helt vil ta det endelige ansvaret.
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <InternalSignal
-              label="Kampanjetrykk"
+              label="Prispress"
               value="Forhøyet"
               note="Markedet anser volum som en løsning. Volum er ikke definert."
             />
@@ -290,54 +458,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRODUCTS */}
-      <section className="bg-[#f0e7ab]">
-        <div className="max-w-6xl mx-auto px-4 pt-10">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] opacity-45">
-                Aktivt utvalg
-              </div>
-              <h2 className="mt-2 text-4xl font-black tracking-[-0.04em] md:text-5xl">
-                Varer under aktiv påvirkning
-              </h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed opacity-72">
-                Prisene er midlertidige. Trykket er permanent. Utsolgt tolkes fortsatt offensivt.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="/kampanjer"
-                className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:opacity-90"
-              >
-                Se kampanjer →
-              </a>
-              <a href="/lager" className="inline-flex items-center gap-2 py-3 text-sm font-black underline">
-                Intern lagerstatus
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <ProductGrid limit={6} />
-      </section>
-
-      {/* FOOTNOTE AREA */}
+      {/* FOOTNOTE / LAST PUSH */}
       <section className="border-t border-black/10 bg-[#f5f2e7]">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <PressureCard
-              icon={Timer}
-              title="Tidsvindu"
-              body="Tilbudet avsluttes snart. “Snart” er operativt, ikke nødvendigvis målbart."
-              tone="white"
+              icon={Siren}
+              title="Trykk"
+              body="Kampanjen fortsetter inntil stemningen svekkes eller utvalget forsvinner."
+              tone="yellow"
             />
             <PressureCard
               icon={TriangleAlert}
               title="Avvik"
-              body="Kampanjestatus kan avvike fra opplevd kampanjestatus. Begge kan være gyldige."
-              tone="yellow"
+              body="Kampanjestatus kan avvike fra opplevd kampanjestatus. Begge kan fortsatt brukes."
+              tone="white"
             />
             <PressureCard
               icon={ShieldCheck}

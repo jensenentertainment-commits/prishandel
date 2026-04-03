@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, type ReactNode } from "react";
 import CheckoutGate from "../components/CheckoutGate";
 import { useCart } from "../components/cart/CartProvider";
 import LedgerPanel from "../components/ledger/LedgerPanel";
@@ -39,6 +39,14 @@ function makeSessionSeed(extra: string) {
 
 function pick<T>(arr: readonly T[], rnd: () => number) {
   return arr[Math.floor(rnd() * arr.length)];
+}
+
+function getBadge(now: number, before: number) {
+  const diff = Math.max(0, before - now);
+  if (diff <= 0) return "Pris vurdert";
+  if (diff < 100) return "Mildt prisfall";
+  if (diff < 300) return "Aktivt prisfall";
+  return "Aggressivt prisfall";
 }
 
 const HEADER_SUBLINES = [
@@ -105,7 +113,9 @@ function getHeaderLine(itemCount: number) {
 
 function getHeaderSecondLine(itemCount: number, total: number, fallback: string) {
   if (itemCount === 0) return fallback;
-  if (total >= 1000) return "Dette kan påvirke systemet. Systemet foretrekker begrenset påvirkning.";
+  if (total >= 1000) {
+    return "Dette kan påvirke systemet. Systemet foretrekker begrenset påvirkning.";
+  }
   if (itemCount >= 3) return "Saken har utviklet seg. Utviklingen er notert.";
   return fallback;
 }
@@ -115,6 +125,21 @@ function getAvailabilityLabel(itemCount: number, total: number) {
   if (total >= 1400) return "Tilgjengelighet: sensitiv";
   if (itemCount >= 3) return "Tilgjengelighet: ustabil";
   return "Tilgjengelighet: uavklart";
+}
+
+function getPressureLabel(itemCount: number, total: number) {
+  if (itemCount === 0) return "Lavt trykk";
+  if (total >= 1800) return "Kritisk trykk";
+  if (total >= 1000) return "Forhøyet trykk";
+  if (itemCount >= 3) return "Vedvarende trykk";
+  return "Moderat trykk";
+}
+
+function getCheckoutWarning(itemCount: number, total: number) {
+  if (itemCount === 0) return "Ingen behandling tilgjengelig uten varer.";
+  if (total >= 1800) return "Regnskap vil sannsynligvis involveres.";
+  if (itemCount >= 3) return "Ordren kan bli sendt til videre intern vurdering.";
+  return "Betaling, lager og virkelighet behandles separat.";
 }
 
 export default function CartClient({ products }: { products: Product[] }) {
@@ -143,7 +168,8 @@ export default function CartClient({ products }: { products: Product[] }) {
     () => linesWithProduct.reduce((sum, x) => sum + x.p.now * x.qty, 0),
     [linesWithProduct]
   );
-  const shipping = subtotal >= 499 ? 0 : 49;
+
+  const shipping = subtotal >= 499 ? 0 : subtotal === 0 ? 0 : 49;
   const discount = 0;
   const total = subtotal + shipping - discount;
   const status = getCartStatus(itemCount, total);
@@ -168,6 +194,16 @@ export default function CartClient({ products }: { products: Product[] }) {
     [itemCount, total]
   );
 
+  const pressureLabel = useMemo(
+    () => getPressureLabel(itemCount, total),
+    [itemCount, total]
+  );
+
+  const checkoutWarning = useMemo(
+    () => getCheckoutWarning(itemCount, total),
+    [itemCount, total]
+  );
+
   const topLine = useMemo(() => getHeaderLine(itemCount), [itemCount]);
   const topSecondLine = useMemo(
     () => getHeaderSecondLine(itemCount, total, headerSub),
@@ -188,14 +224,15 @@ export default function CartClient({ products }: { products: Product[] }) {
     }
   }, [status, ledger]);
 
-  const shippingValue = shipping === 0 ? shippingZeroLine : `${shipping},-`;
+  const shippingValue =
+    shipping === 0 ? (subtotal === 0 ? "ikke aktuelt" : shippingZeroLine) : `${shipping},-`;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="flex items-end justify-between gap-4">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-black">Handlekurv</h1>
-          <p className="text-sm opacity-70">
+          <h1 className="text-3xl font-black sm:text-4xl">Handlekurv</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed opacity-70">
             {topLine} {topSecondLine}
           </p>
         </div>
@@ -205,27 +242,29 @@ export default function CartClient({ products }: { products: Product[] }) {
         </a>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr,380px]">
-        <section className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
-            <div>
-              <div className="font-black">Varer</div>
-              <div className="mt-1 text-xs font-semibold opacity-60">
-                {availabilityLabel}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm">
+          <div className="border-b border-black/10 px-4 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="font-black">Varer</div>
+                <div className="mt-1 text-xs font-semibold opacity-60">
+                  {availabilityLabel} • {pressureLabel}
+                </div>
+              </div>
+
+              <div className="inline-flex w-fit rounded bg-black px-2 py-1 text-xs font-semibold text-white">
+                {status}
               </div>
             </div>
 
-            <div className="rounded bg-black px-2 py-1 text-xs font-semibold text-white">
-              {status}
+            <div className="mt-3 text-xs font-semibold opacity-60">
+              {say(voice, itemCount === 0 ? "cart_empty" : "cart_status")}
             </div>
           </div>
 
-          <div className="px-6 pt-3 text-xs font-semibold opacity-60">
-            {say(voice, itemCount === 0 ? "cart_empty" : "cart_status")}
-          </div>
-
           {linesWithProduct.length === 0 ? (
-            <div className="p-10 text-sm opacity-70">{emptyLine}</div>
+            <div className="p-8 text-sm opacity-70 sm:p-10">{emptyLine}</div>
           ) : (
             <div className="divide-y divide-black/10">
               {linesWithProduct.map(({ p, qty }) => {
@@ -241,9 +280,9 @@ export default function CartClient({ products }: { products: Product[] }) {
                     : "Linjen er registrert.";
 
                 return (
-                  <div key={p.slug} className="p-6">
-                    <div className="flex gap-4">
-                      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-neutral-50">
+                  <div key={p.slug} className="p-4 sm:p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row">
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-neutral-50">
                         <img
                           src={`/products/${p.slug}.svg`}
                           alt={p.title}
@@ -251,23 +290,25 @@ export default function CartClient({ products }: { products: Product[] }) {
                         />
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
                             <a
                               href={`/produkt/${p.slug}`}
-                              className="font-black hover:underline"
+                              className="block font-black hover:underline"
                             >
                               {p.title}
                             </a>
 
-                            <div className="mt-1 text-xs opacity-70">{stockLine}</div>
+                            <div className="mt-1 text-xs leading-relaxed opacity-70">
+                              {stockLine}
+                            </div>
                             <div className="mt-1 text-[11px] font-semibold opacity-60">
                               SYS: {p.leak}
                             </div>
                           </div>
 
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             <div className="text-xs opacity-50 line-through">
                               {p.before},-
                             </div>
@@ -277,8 +318,8 @@ export default function CartClient({ products }: { products: Product[] }) {
                           </div>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                          <div className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-neutral-50 px-3 py-2 text-sm">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                          <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-black/10 bg-neutral-50 px-3 py-2 text-sm">
                             <span className="opacity-70">Antall</span>
 
                             <div className="inline-flex items-center gap-1">
@@ -289,13 +330,13 @@ export default function CartClient({ products }: { products: Product[] }) {
                                   setQty(p.slug, next);
                                   ledger.append(`Antall justert: ${p.title}`, -(p.now * 0.12));
                                 }}
-                                className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
+                                className="h-8 w-8 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
                                 aria-label="Mindre"
                               >
                                 −
                               </button>
 
-                              <span className="w-6 text-center font-black">{qty}</span>
+                              <span className="w-7 text-center font-black">{qty}</span>
 
                               <button
                                 type="button"
@@ -304,7 +345,7 @@ export default function CartClient({ products }: { products: Product[] }) {
                                   setQty(p.slug, next);
                                   ledger.append(`Antall justert: ${p.title}`, +(p.now * 0.18));
                                 }}
-                                className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
+                                className="h-8 w-8 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
                                 aria-label="Mer"
                               >
                                 +
@@ -312,8 +353,8 @@ export default function CartClient({ products }: { products: Product[] }) {
                             </div>
                           </div>
 
-                          <span className="rounded bg-yellow-300 px-2 py-1 text-xs font-semibold">
-                            getBadge(p.now, p.before)
+                          <span className="inline-flex w-fit rounded bg-yellow-300 px-2 py-1 text-xs font-semibold">
+                            {getBadge(p.now, p.before)}
                           </span>
 
                           <span className="text-xs opacity-60">{lineState}</span>
@@ -324,13 +365,13 @@ export default function CartClient({ products }: { products: Product[] }) {
                               remove(p.slug);
                               ledger.append(`Linje fjernet: ${p.title}`, -(p.now * qty));
                             }}
-                            className="ml-auto text-xs opacity-60 underline decoration-2 hover:opacity-90"
+                            className="text-left text-xs opacity-60 underline decoration-2 hover:opacity-90 sm:ml-auto"
                           >
                             Fjern linje
                           </button>
                         </div>
 
-                        <div className="mt-3 text-xs opacity-70">{p.note}</div>
+                        <div className="mt-3 text-xs leading-relaxed opacity-70">{p.note}</div>
                       </div>
                     </div>
                   </div>
@@ -339,13 +380,13 @@ export default function CartClient({ products }: { products: Product[] }) {
             </div>
           )}
 
-          <div className="border-t border-black/10 bg-neutral-50 px-6 py-4 text-xs opacity-70">
+          <div className="border-t border-black/10 bg-neutral-50 px-4 py-4 text-xs leading-relaxed opacity-70 sm:px-6">
             {cartFooter}
           </div>
         </section>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-black/10 bg-white p-5 shadow-sm sm:p-6">
             <div className="text-lg font-black">Oppsummering</div>
 
             <div className="mt-4 space-y-2 text-sm">
@@ -354,31 +395,50 @@ export default function CartClient({ products }: { products: Product[] }) {
               <Row label="Rabatt" value={`${discount},-`} />
               <div className="my-3 border-t border-black/10" />
               <Row
-                label={<span className="font-black">Total</span>}
+                label={<span className="font-black">Sum å forholde seg til</span>}
                 value={<span className="text-lg font-black">{total},-</span>}
               />
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-black/10 bg-yellow-50 p-4">
+              <div className="text-xs font-black uppercase tracking-wide opacity-60">
+                Før behandling
+              </div>
+              <div className="mt-2 text-sm leading-relaxed">
+                {checkoutWarning}
+              </div>
+              <div className="mt-2 text-xs opacity-65">
+                God samvittighet kan legges til i neste steg uten å forbedre utfallet.
+              </div>
             </div>
 
             <DiscountBox />
 
             <CheckoutGate total={total} itemsCount={itemCount} />
 
-            <div className="mt-3 text-xs opacity-60">{paymentLine}</div>
+            <div className="mt-3 text-xs leading-relaxed opacity-60">{paymentLine}</div>
           </div>
 
-          <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-            <div className="text-sm font-black">Levering</div>
-            <div className="mt-2 text-sm opacity-80">
+          <div className="rounded-3xl border border-black/10 bg-white p-5 shadow-sm sm:p-6">
+            <div className="text-sm font-black">Levering og behandling</div>
+            <div className="mt-2 text-sm leading-relaxed opacity-80">
               Standard levering: <span className="font-semibold">ubestemt</span>
               <br />
               Ekspress: <span className="font-semibold">fortsatt ubestemt</span>
             </div>
-            <div className="mt-3 text-xs opacity-60">
+            <div className="mt-3 text-xs leading-relaxed opacity-60">
               Gratis frakt gjelder ved totalsum over 499,-, inntil videre og uten
               forpliktende presedens.
             </div>
 
-            <LedgerPanel className="space-y-0" />
+            <div className="mt-4 rounded-2xl border border-black/10 bg-neutral-50 p-4">
+              <div className="text-xs font-black uppercase tracking-wide opacity-60">
+                Intern logg
+              </div>
+              <div className="mt-3">
+                <LedgerPanel className="space-y-0" />
+              </div>
+            </div>
           </div>
         </aside>
       </div>
@@ -390,36 +450,39 @@ function DiscountBox() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState(false);
 
+  const message =
+    applied && code.trim()
+      ? `Kode "${code.trim()}" registrert. Ingen prisendring funnet for denne tilstanden.`
+      : applied
+      ? "Kode registrert. Ingen prisendring funnet for denne tilstanden."
+      : "Koder behandles fortløpende og uten garanti for effekt.";
+
   return (
-    <div className="mt-4 rounded-xl border border-black/10 bg-neutral-50 p-4">
+    <div className="mt-4 rounded-2xl border border-black/10 bg-neutral-50 p-4">
       <div className="text-sm font-black">Rabattkode</div>
 
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
         <input
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="KAMPANJEALLTID"
-          className="flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm"
+          className="flex-1 rounded-xl border border-black/15 bg-white px-3 py-2 text-sm"
         />
         <button
           type="button"
           onClick={() => setApplied(true)}
-          className="rounded-lg bg-black px-4 py-2 text-sm font-black text-white hover:opacity-90"
+          className="rounded-xl bg-black px-4 py-2 text-sm font-black text-white hover:opacity-90"
         >
           Bruk
         </button>
       </div>
 
-      <div className="mt-2 text-xs opacity-70">
-        {applied
-          ? "Kode registrert. Ingen prisendring funnet for denne tilstanden."
-          : "Koder behandles fortløpende og uten garanti for effekt."}
-      </div>
+      <div className="mt-2 text-xs leading-relaxed opacity-70">{message}</div>
     </div>
   );
 }
 
-function Row(props: { label: React.ReactNode; value: React.ReactNode }) {
+function Row(props: { label: ReactNode; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="opacity-70">{props.label}</div>

@@ -1,31 +1,50 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-type Outcome = "normal" | "systemfeil";
+type Outcome =
+  | "utsolgt"
+  | "systemfeil"
+  | "regnskap"
+  | "teoretisk"
+  | "internbehandling";
 
 type Order = {
   id: string;
   outcome: Outcome;
+  title: string;
   status: string;
+  statusTone: "red" | "yellow" | "black";
+  summary: string;
   handler: string;
   payment: string;
   delivery: string;
   created: string;
+
+  from?: string;
+  code?: string;
+  items?: string;
+  total?: string;
+  conscience?: boolean;
+
   ref: string;
   sys: string;
   prh: string;
   caseType: string;
   severity: string;
   processingLevel: string;
-
-  from?: string;
-  code?: string;
-  items?: string;
-  total?: string;
+  marketLine: string;
+  financeLine: string;
+  finalNote: string;
+  metrics: {
+    pressure: number;
+    support: number;
+    reality: number;
+  };
 };
 
 function isValidOrderId(id: string) {
-  return /^PRH-\d{4}$/i.test(id.trim());
+  const clean = id.trim().toUpperCase();
+  return /^ORD-PH-\d{6}$/.test(clean) || /^PRH-\d{4}$/.test(clean);
 }
 
 function hashCode(input: string) {
@@ -38,6 +57,120 @@ function hashCode(input: string) {
 
 function pickFrom<T>(items: readonly T[], seed: number): T {
   return items[seed % items.length];
+}
+
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
+
+function getOutcomeCopy(outcome: Outcome, conscience: boolean) {
+  switch (outcome) {
+    case "systemfeil":
+      return {
+        title: "Ordren stoppet i systemet",
+        status: "Systemfeil",
+        statusTone: "red" as const,
+        summary:
+          "Bestillingen ble behandlet langt nok til å skape håp, men ikke langt nok til å skape vareflyt.",
+        handler: "System og regnskap",
+        payment: "Avvist av mellomlag (midlertidig)",
+        delivery: "Ikke opprettet",
+        caseType: "Teknisk handelsavvik",
+        severity: "Betydelig",
+        processingLevel: "Utvidet administrativt",
+        marketLine: "📣 Marked: “Kunden var varm. Systemet var kaldt.”",
+        financeLine: conscience
+          ? "🧾 Regnskap: “God samvittighet ble registrert før havari. Det kompliserer avslutningen.”"
+          : "🧾 Regnskap: “Dette ser dyrt ut uten å bli noe av.”",
+        finalNote: conscience
+          ? "Ordren er registrert som forsøk med vedlagt samvittighet."
+          : "Ordren er registrert som forsøk.",
+      };
+    case "regnskap":
+      return {
+        title: "Ordren ble stoppet av regnskap",
+        status: "Regnskapsmessig stans",
+        statusTone: "black" as const,
+        summary:
+          "Produktet ble vurdert som salgbart av markedet og uforsvarlig av økonomien. Økonomien vant denne runden.",
+        handler: "Regnskap",
+        payment: "Avvist etter intern vurdering",
+        delivery: "Stanset før opprettelse",
+        caseType: "Økonomisk handelsinnstramming",
+        severity: "Moderat til betydelig",
+        processingLevel: "Administrativt utvidet",
+        marketLine: "📣 Marked: “Vi var nær.”",
+        financeLine: conscience
+          ? "🧾 Regnskap: “God samvittighet påvirker ikke kostnadsbildet.”"
+          : "🧾 Regnskap: “Nær er også et avvik.”",
+        finalNote: conscience
+          ? "Du eier foreløpig en intensjon med tilhørende følelsesstøtte."
+          : "Du eier foreløpig en intensjon.",
+      };
+    case "teoretisk":
+      return {
+        title: "Ordren er fullført i teorien",
+        status: "Teoretisk fullført",
+        statusTone: "yellow" as const,
+        summary:
+          "Kjøpet anses gjennomført i et begrenset, ikke-leverbart lag av virkeligheten.",
+        handler: "Administrativ tolkning",
+        payment: "Godkjent i teorien",
+        delivery: "Mentalt mulig",
+        caseType: "Teoretisk ordreoppfyllelse",
+        severity: "Lav til moderat",
+        processingLevel: "Teoretisk",
+        marketLine: conscience
+          ? "📣 Marked: “Dette teller emosjonelt.”"
+          : "📣 Marked: “Dette teller.”",
+        financeLine: "🧾 Regnskap: “Dette teller ikke.”",
+        finalNote: conscience
+          ? "Kvittering kan oppleves mentalt. God samvittighet er registrert."
+          : "Kvittering kan oppleves mentalt.",
+      };
+    case "internbehandling":
+      return {
+        title: "Ordren er sendt til intern behandling",
+        status: "Videresendt",
+        statusTone: "black" as const,
+        summary:
+          "Systemet kunne ikke bekrefte produkt, lager eller leveringsvilje, men anså saken som interessant nok til videre intern sirkulasjon.",
+        handler: "Intern behandling",
+        payment: "Åpen vurdering",
+        delivery: "Under vurdering",
+        caseType: "Administrativ etterbehandling",
+        severity: "Moderat",
+        processingLevel: "Administrativt",
+        marketLine: "📣 Marked: “Hold kunden varm.”",
+        financeLine: conscience
+          ? "🧾 Regnskap: “Hold dokumentasjonen kald. Følelsene kan behandles separat.”"
+          : "🧾 Regnskap: “Hold dokumentasjonen kald.”",
+        finalNote: conscience
+          ? "Du vil ikke bli oppdatert fortløpende, men samvittigheten er notert."
+          : "Du vil ikke bli oppdatert fortløpende.",
+      };
+    default:
+      return {
+        title: "Produktet var ikke faktisk tilgjengelig",
+        status: "Ikke tilgjengelig",
+        statusTone: "red" as const,
+        summary:
+          "Produktet var tilgjengelig som idé, pris og kampanje, men ikke som faktisk vare.",
+        handler: "Lager og marked",
+        payment: "Ikke utløst",
+        delivery: "Ikke aktuelt",
+        caseType: "Tilgjengelighetsavvik",
+        severity: "Lav til moderat",
+        processingLevel: "Registrert",
+        marketLine: "📣 Marked: “Det viktigste er at trykket er ekte.”",
+        financeLine: conscience
+          ? "🧾 Regnskap: “Det viktigste er at lageret ikke finnes. Samvittigheten kan beholdes.”"
+          : "🧾 Regnskap: “Det viktigste er at lageret ikke finnes.”",
+        finalNote: conscience
+          ? "Ordren er registrert uten utsikter, men med dokumentert omtanke."
+          : "Ordren er registrert uten utsikter.",
+      };
+  }
 }
 
 function fakeOrder(
@@ -55,99 +188,139 @@ function fakeOrder(
   const h = hashCode(clean);
 
   const queryOutcome = get("outcome");
-  const derivedOutcome: Outcome = h % 5 === 0 || h % 7 === 0 ? "systemfeil" : "normal";
+  const conscience = get("conscience") === "true";
+
+  const derivedOutcome: Outcome = pickFrom(
+    ["utsolgt", "internbehandling", "teoretisk", "regnskap", "systemfeil"],
+    h
+  );
+
   const outcome: Outcome =
-    queryOutcome === "systemfeil" || queryOutcome === "normal"
+    queryOutcome === "utsolgt" ||
+    queryOutcome === "systemfeil" ||
+    queryOutcome === "regnskap" ||
+    queryOutcome === "teoretisk" ||
+    queryOutcome === "internbehandling"
       ? queryOutcome
       : derivedOutcome;
 
-  const payment =
-    outcome === "systemfeil"
-      ? "Avvist av mellomlag (midlertidig)"
-      : "Godkjent i teorien";
-
-  const status =
-    outcome === "systemfeil"
-      ? "Avventer manuell tolkning"
-      : "Behandles (mentalt)";
-
-  const delivery =
-    outcome === "systemfeil"
-      ? "Under vurdering"
-      : pickFrom(["Ubestemt", "Avklart tidligere", "Under vurdering"], h);
-
-  const handler =
-    outcome === "systemfeil"
-      ? "Regnskap"
-      : pickFrom(
-          ["Markedsavdelingen", "Kundeservice", "Virkeligheten", "Regnskap"],
-          Math.floor(h / 3)
-        );
-
-  const severity =
-    outcome === "systemfeil"
-      ? "Betydelig"
-      : pickFrom(["Lav", "Moderat", "Lav"], Math.floor(h / 5));
-
-  const caseType = pickFrom(
-    [
-      "Handelsrelatert vurdering",
-      "Administrativ avklaring",
-      "Kundemessig etterbehandling",
-      "Intern salgsoppfølging",
-    ],
-    Math.floor(h / 7)
-  );
-
-  const processingLevel =
-    outcome === "systemfeil" ? "Utvidet administrativt" : "Administrativt";
+  const copy = getOutcomeCopy(outcome, conscience);
 
   const n1 = String(h).padStart(6, "0");
   const n2 = String(h * 3).padStart(6, "0");
   const n3 = String(h * 7).padStart(6, "0");
 
-  const from = get("from") ?? "register";
-  const code = get("code") ?? `IKKE-${n1.slice(-4)}`;
+  const from = get("from") ?? "kasse";
+  const code = get("code") ?? `PH-${n1.slice(-4)}`;
   const items = get("items") ?? `${(h % 3) + 1}`;
-  const total = get("total") ?? `${(h % 9) * 100}`;
+  const total = get("total") ?? `${((h % 9) + 1) * 100}`;
+
+  const basePressure =
+    outcome === "systemfeil"
+      ? 94
+      : outcome === "regnskap"
+      ? 87
+      : outcome === "teoretisk"
+      ? 72
+      : outcome === "internbehandling"
+      ? 79
+      : 83;
+
+  const baseSupport =
+    outcome === "systemfeil"
+      ? 24
+      : outcome === "regnskap"
+      ? 31
+      : outcome === "teoretisk"
+      ? 66
+      : outcome === "internbehandling"
+      ? 44
+      : 28;
+
+  const baseReality =
+    outcome === "systemfeil"
+      ? 6
+      : outcome === "regnskap"
+      ? 11
+      : outcome === "teoretisk"
+      ? 21
+      : outcome === "internbehandling"
+      ? 15
+      : 4;
 
   return {
     id: clean,
     outcome,
-    status,
-    handler,
-    payment,
-    delivery,
+    title: copy.title,
+    status: copy.status,
+    statusTone: copy.statusTone,
+    summary: copy.summary,
+    handler: copy.handler,
+    payment: copy.payment,
+    delivery: copy.delivery,
     created: "Registrert nylig",
     ref: `REF-${n1.slice(0, 3)}-${n2.slice(-3)}`,
     sys: `SYS-${n2.slice(1, 5)}`,
-    prh: `PRH-${clean.slice(4, 6)}-${n3.slice(-3)}`,
-    caseType,
-    severity,
-    processingLevel,
+    prh: `PRH-${clean.replace(/[^0-9]/g, "").slice(0, 2) || "00"}-${n3.slice(-3)}`,
+    caseType: copy.caseType,
+    severity: copy.severity,
+    processingLevel: copy.processingLevel,
     from,
     code,
     items,
     total,
+    conscience,
+    marketLine: copy.marketLine,
+    financeLine: copy.financeLine,
+    finalNote: copy.finalNote,
+    metrics: {
+      pressure: clamp(basePressure + (h % 5) - 2, 0, 100),
+      support: clamp(baseSupport + ((h >> 2) % 7) - 3, 0, 100),
+      reality: clamp(baseReality + ((h >> 3) % 5) - 2, 0, 100),
+    },
   };
 }
 
 function logLines(order: Order) {
-  if (order.outcome === "systemfeil") {
-    return [
-      "Registrert i systemet",
-      "Overført til mellomlag for foreløpig avvisning",
-      "Sendt til manuell tolkning",
-      "Videre behandling avventer administrativ ro",
-    ];
+  const lines = [
+    "Registrert i systemet",
+    `Tildelt behandling: ${order.handler}`,
+  ];
+
+  if (order.conscience) {
+    lines.push("God samvittighet registrert som tillegg uten operasjonell virkning");
   }
 
-  return [
-    "Registrert i systemet",
-    `Tildelt avdeling: ${order.handler}`,
-    "Vurdering initiert uten bindende frist",
-    "Foreløpig avklaring opprettet",
-  ];
+  switch (order.outcome) {
+    case "systemfeil":
+      lines.push("Overført til mellomlag for foreløpig avvisning");
+      lines.push("Videre behandling avventer administrativ ro");
+      break;
+    case "regnskap":
+      lines.push("Overført til økonomisk vurdering");
+      lines.push("Kjøpsforsøket ble stoppet før vareløfte kunne oppstå");
+      break;
+    case "teoretisk":
+      lines.push("Ordren ble godkjent i et begrenset teoretisk lag");
+      lines.push("Leveringsgrunnlag ble ikke opprettet");
+      break;
+    case "internbehandling":
+      lines.push("Saken ble videresendt til intern sirkulasjon");
+      lines.push("Oppdatering anses ikke som nødvendig på nåværende tidspunkt");
+      break;
+    default:
+      lines.push("Tilgjengelighet ble testet mot antagelser");
+      lines.push("Varegrunnlag kunne ikke bekreftes");
+      break;
+  }
+
+  return lines;
+}
+
+function statusToneClasses(tone: Order["statusTone"]) {
+  if (tone === "red") return "bg-red-600 text-white";
+  if (tone === "yellow") return "bg-yellow-300 text-black";
+  return "bg-black text-yellow-300";
 }
 
 export default async function OrderPage({
@@ -166,104 +339,184 @@ export default async function OrderPage({
   const logs = logLines(order);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
-        <div className="bg-black px-6 py-5 text-white">
-          <div className="text-sm font-black uppercase tracking-wide text-yellow-300">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
+        <div className="bg-black px-5 py-5 text-white sm:px-6 sm:py-6">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-yellow-300">
             Ordre registrert
           </div>
-          <h1 className="mt-1 text-2xl font-black">Takk for bestillingen*</h1>
-          <div className="mt-1 text-sm text-white/80">
-            * bestillingen kan avvike fra virkeligheten
+
+          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black leading-tight sm:text-3xl">
+                {order.title}
+              </h1>
+              <div className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
+                {order.summary}
+              </div>
+            </div>
+
+            <div
+              className={`shrink-0 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-wide ${statusToneClasses(
+                order.statusTone
+              )}`}
+            >
+              {order.status}
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-wide">
+            <span className="rounded bg-white/10 px-2 py-1 text-white">
+              {order.id}
+            </span>
+            <span className="rounded bg-white/10 px-2 py-1 text-white">
+              {order.code}
+            </span>
+            {order.conscience && (
+              <span className="rounded bg-yellow-300 px-2 py-1 text-black">
+                God samvittighet registrert
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="space-y-6 p-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <Meta label="Ordrenummer" value={order.id} />
-            <Meta label="Status" value={order.status} />
-            <Meta label="Behandles av" value={order.handler} />
-            <Meta label="Betaling" value={order.payment} />
-            <Meta label="Forventet levering" value={order.delivery} />
-            <Meta label="Tidspunkt" value={order.created} />
-
-            <Meta label="Kilde" value={order.from ?? "ukjent"} />
-            <Meta label="Bekreftelseskode" value={order.code ?? "ikke utstedt"} />
-            <Meta label="Antall varer" value={order.items ?? "0"} />
-            <Meta label="Total" value={order.total ? `${order.total},-` : "uberegnet"} />
+        <div className="space-y-6 p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <MetricCard
+              label="Prispress"
+              value={`${order.metrics.pressure}%`}
+              note="Opprettholdt"
+            />
+            <MetricCard
+              label="Intern støtte"
+              value={`${order.metrics.support}%`}
+              note="Begrenset"
+            />
+            <MetricCard
+              label="Faktisk virkelighet"
+              value={`${order.metrics.reality}%`}
+              note="Svak"
+            />
           </div>
 
-          <div className="h-px bg-black/10" />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
+              <div className="text-xs font-black uppercase tracking-wide opacity-60">
+                Ordreoversikt
+              </div>
 
-          <div className="space-y-2">
-            <div className="font-black">Saksdetaljer</div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <Meta label="Referanse" value={order.ref} />
-              <Meta label="Systemkode" value={order.sys} />
-              <Meta label="PRH-nøkkel" value={order.prh} />
-              <Meta label="Sakstype" value={order.caseType} />
-              <Meta label="Alvorlighetsgrad" value={order.severity} />
-              <Meta label="Behandlingsnivå" value={order.processingLevel} />
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Meta label="Ordrenummer" value={order.id} />
+                <Meta label="Status" value={order.status} />
+                <Meta label="Behandles av" value={order.handler} />
+                <Meta label="Betaling" value={order.payment} />
+                <Meta label="Forventet levering" value={order.delivery} />
+                <Meta label="Tidspunkt" value={order.created} />
+                <Meta label="Kilde" value={order.from ?? "ukjent"} />
+                <Meta
+                  label="Total"
+                  value={order.total ? `${order.total},-` : "uberegnet"}
+                />
+                <Meta label="Antall varer" value={order.items ?? "0"} />
+                <Meta
+                  label="God samvittighet"
+                  value={order.conscience ? "Lagt til" : "Ikke lagt til"}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
+              <div className="text-xs font-black uppercase tracking-wide opacity-60">
+                Saksdetaljer
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Meta label="Referanse" value={order.ref} />
+                <Meta label="Systemkode" value={order.sys} />
+                <Meta label="PRH-nøkkel" value={order.prh} />
+                <Meta label="Sakstype" value={order.caseType} />
+                <Meta label="Alvorlighetsgrad" value={order.severity} />
+                <Meta label="Behandlingsnivå" value={order.processingLevel} />
+              </div>
+            </section>
+          </div>
+
+          <section className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
+            <div className="text-xs font-black uppercase tracking-wide opacity-60">
+              Konklusjon
             </div>
-          </div>
+            <div className="mt-2 text-lg font-black leading-tight sm:text-xl">
+              {order.finalNote}
+            </div>
 
-          <div className="h-px bg-black/10" />
+            <div className="mt-4 rounded-2xl border border-black/10 bg-black/[0.03] p-4 text-sm leading-relaxed">
+              <div>{order.marketLine}</div>
+              <div className="mt-1">{order.financeLine}</div>
+            </div>
+          </section>
 
-          <div className="space-y-2">
-            <div className="font-black">Behandlingslogg</div>
-            <ul className="space-y-2 text-sm">
+          <section className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
+            <div className="text-xs font-black uppercase tracking-wide opacity-60">
+              Behandlingslogg
+            </div>
+
+            <ul className="mt-4 space-y-3 text-sm">
               {logs.map((line, index) => (
                 <li key={index} className="flex gap-3">
-                  <span className="w-20 text-xs font-semibold opacity-60">
+                  <span className="w-16 shrink-0 text-[11px] font-black uppercase tracking-wide opacity-45">
                     T+0{index}
                   </span>
-                  <span className="opacity-80">{line}</span>
+                  <span className="leading-relaxed opacity-80">{line}</span>
                 </li>
               ))}
             </ul>
-            <div className="text-xs opacity-60">
+
+            <div className="mt-4 text-xs leading-relaxed opacity-60">
               Loggen viser et utvalg av hendelser. Øvrige hendelser kan være utelatt
-              av hensyn til systemro.
+              av hensyn til systemro, ansvarsflyt og intern lesbarhet.
             </div>
-          </div>
+          </section>
 
-          <div className="h-px bg-black/10" />
+          <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
+            <div className="text-xs font-black uppercase tracking-wide opacity-60">
+              Hva skjer nå?
+            </div>
+            <div className="mt-3 space-y-2 text-sm leading-relaxed opacity-80">
+              <p>
+                Ordren din er registrert i systemet og vurderes fortløpende.
+                Vurderingen foretas administrativt i samråd med tilgjengelige forhold.
+              </p>
+              <p>
+                Det kreves ingen handling fra din side på nåværende tidspunkt.
+              </p>
+              {order.conscience && (
+                <p>
+                  Tillegget “god samvittighet” er registrert separat og påvirker ikke
+                  varegrunnlag, levering eller faktisk konsekvens.
+                </p>
+              )}
+            </div>
+          </section>
 
-          <div className="space-y-2">
-            <div className="font-black">Hva skjer nå?</div>
-            <p className="text-sm opacity-80">
-              Ordren din er registrert i systemet og vurderes fortløpende. Vurderingen
-              foretas administrativt i samråd med tilgjengelige forhold.
-            </p>
-            <p className="text-sm opacity-80">
-              Det kreves ingen handling fra din side på nåværende tidspunkt.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Link
               href={`/sporing/${encodeURIComponent(order.id)}`}
-              className="rounded-lg bg-black px-5 py-3 font-black text-white hover:opacity-90"
+              className="rounded-xl bg-black px-5 py-3 text-center font-black text-white hover:opacity-90"
             >
               Spor pakke →
             </Link>
             <Link
               href="/kampanjer"
-              className="rounded-lg bg-red-600 px-5 py-3 font-black text-white hover:opacity-90"
+              className="rounded-xl bg-red-600 px-5 py-3 text-center font-black text-white hover:opacity-90"
             >
               Se flere tilbud →
             </Link>
             <Link
               href="/kundeservice"
-              className="rounded-lg border border-black/20 bg-white px-5 py-3 font-black text-black hover:bg-black/5"
+              className="rounded-xl border border-black/20 bg-white px-5 py-3 text-center font-black text-black hover:bg-black/5"
             >
               Kontakt kundeservice
             </Link>
-          </div>
-
-          <div className="pt-2 text-xs opacity-60">
-            🧾 Regnskap: “Denne ordren er notert.” <br />
-            📣 Marked: “Denne ordren er registrert som relevant.”
           </div>
         </div>
       </div>
@@ -273,9 +526,23 @@ export default async function OrderPage({
 
 function Meta(props: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-xs font-semibold opacity-60">{props.label}</div>
-      <div className="font-black">{props.value}</div>
+    <div className="rounded-xl border border-black/10 bg-white p-3">
+      <div className="text-[11px] font-black uppercase tracking-wide opacity-45">
+        {props.label}
+      </div>
+      <div className="mt-1 text-sm font-black leading-relaxed">{props.value}</div>
+    </div>
+  );
+}
+
+function MetricCard(props: { label: string; value: string; note: string }) {
+  return (
+    <div className="rounded-2xl border border-black/10 bg-white p-4">
+      <div className="text-[11px] font-black uppercase tracking-wide opacity-45">
+        {props.label}
+      </div>
+      <div className="mt-2 text-2xl font-black">{props.value}</div>
+      <div className="mt-1 text-sm opacity-70">{props.note}</div>
     </div>
   );
 }
