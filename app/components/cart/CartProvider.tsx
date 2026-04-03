@@ -11,6 +11,9 @@ type CartContextValue = {
   remove: (slug: string) => void;
   clear: () => void;
   itemCount: number;
+  lineCount: number;
+  isEmpty: boolean;
+  statusLabel: string;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -20,34 +23,142 @@ function clampQty(n: number) {
   return Math.max(1, Math.min(99, Math.floor(n)));
 }
 
+function deriveStatus(lines: CartState["lines"]): CartState["status"] {
+  const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
+  if (itemCount === 0) return "released";
+  if (itemCount >= 6 || lines.length >= 4) return "flagged";
+  if (itemCount >= 2) return "reviewing";
+  return "stable";
+}
+
+function normalizeState(input: unknown): CartState | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as Partial<CartState>;
+
+  const lines = Array.isArray(raw.lines)
+    ? raw.lines
+        .filter(
+          (l): l is { slug: string; qty: number } =>
+            !!l &&
+            typeof l === "object" &&
+            typeof l.slug === "string" &&
+            typeof l.qty === "number"
+        )
+        .map((l) => ({ slug: l.slug, qty: clampQty(l.qty) }))
+    : [];
+
+  return {
+    lines,
+    status:
+      raw.status === "stable" ||
+      raw.status === "reviewing" ||
+      raw.status === "flagged" ||
+      raw.status === "released"
+        ? raw.status
+        : deriveStatus(lines),
+    lastAction:
+      raw.lastAction === "add" ||
+      raw.lastAction === "set_qty" ||
+      raw.lastAction === "remove" ||
+      raw.lastAction === "clear"
+        ? raw.lastAction
+        : undefined,
+    updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
+  };
+}
+
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD": {
       const qty = clampQty(action.qty ?? 1);
       const idx = state.lines.findIndex((l) => l.slug === action.slug);
-      if (idx === -1) return { lines: [...state.lines, { slug: action.slug, qty }] };
-      const next = [...state.lines];
-      next[idx] = { ...next[idx], qty: clampQty(next[idx].qty + qty) };
-      return { lines: next };
+
+      const lines =
+        idx === -1
+          ? [...state.lines, { slug: action.slug, qty }]
+          : state.lines.map((l, i) =>
+              i === idx ? { ...l, qty: clampQty(l.qty + qty) } : l
+            );
+
+      return {
+        ...state,
+        lines,
+        status: deriveStatus(lines),
+        lastAction: "add",
+        updatedAt: Date.now(),
+      };
     }
+
     case "SET_QTY": {
       const qty = clampQty(action.qty);
-      return { lines: state.lines.map((l) => (l.slug === action.slug ? { ...l, qty } : l)) };
+      const lines = state.lines.map((l) =>
+        l.slug === action.slug ? { ...l, qty } : l
+      );
+
+      return {
+        ...state,
+        lines,
+        status: deriveStatus(lines),
+        lastAction: "set_qty",
+        updatedAt: Date.now(),
+      };
     }
-    case "REMOVE":
-      return { lines: state.lines.filter((l) => l.slug !== action.slug) };
+
+    case "REMOVE": {
+      const lines = state.lines.filter((l) => l.slug !== action.slug);
+
+      return {
+        ...state,
+        lines,
+        status: deriveStatus(lines),
+        lastAction: "remove",
+        updatedAt: Date.now(),
+      };
+    }
+
     case "CLEAR":
-      return { lines: [] };
+      return {
+        ...state,
+        lines: [],
+        status: "released",
+        lastAction: "clear",
+        updatedAt: Date.now(),
+      };
+
     default:
       return state;
   }
 }
 
 function getInitialState(seedSlugs: string[]): CartState {
-  const existing = loadCart();
+  const existing = normalizeState(loadCart());
   if (existing) return existing;
-  if (seedSlugs.length) return { lines: seedSlugs.map((slug) => ({ slug, qty: 1 })) };
-  return { lines: [] };
+
+  const lines = seedSlugs.length
+    ? seedSlugs.map((slug) => ({ slug, qty: 1 }))
+    : [];
+
+  return {
+    lines,
+    status: deriveStatus(lines),
+    lastAction: undefined,
+    updatedAt: Date.now(),
+  };
+}
+
+function getStatusLabel(status: CartState["status"]) {
+  switch (status) {
+    case "stable":
+      return "Cart stable";
+    case "reviewing":
+      return "Cart under review";
+    case "flagged":
+      return "Cart flagged";
+    case "released":
+      return "Cart released";
+    default:
+      return "Cart active";
+  }
 }
 
 export function CartProvider({
@@ -57,11 +168,7 @@ export function CartProvider({
   children: React.ReactNode;
   seedSlugs?: string[];
 }) {
-  const [state, dispatch] = useReducer(
-    reducer,
-    seedSlugs,
-    (s) => getInitialState(s),
-  );
+  const [state, dispatch] = useReducer(reducer, seedSlugs, (s) => getInitialState(s));
 
   useEffect(() => {
     saveCart(state);
@@ -69,6 +176,8 @@ export function CartProvider({
 
   const api = useMemo<CartContextValue>(() => {
     const itemCount = state.lines.reduce((sum, l) => sum + l.qty, 0);
+    const lineCount = state.lines.length;
+
     return {
       state,
       add: (slug, qty) => dispatch({ type: "ADD", slug, qty }),
@@ -76,6 +185,9 @@ export function CartProvider({
       remove: (slug) => dispatch({ type: "REMOVE", slug }),
       clear: () => dispatch({ type: "CLEAR" }),
       itemCount,
+      lineCount,
+      isEmpty: lineCount === 0,
+      statusLabel: getStatusLabel(state.status),
     };
   }, [state]);
 

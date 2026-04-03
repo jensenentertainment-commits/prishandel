@@ -1,134 +1,131 @@
-// app/kundeservice/page.tsx
 import Link from "next/link";
-import SupportChat from "../components/SupportChat";
 
 const CATS = [
   {
     title: "Levering",
-    desc: "Hvor er pakken? Når kommer den? Hvorfor er den levert og ikke sendt samtidig?",
+    desc: "Sporing, leveringstid og forholdet mellom registrert ordre og faktisk fremdrift.",
     href: "/kundeservice/levering",
     badge: "POPULÆR",
   },
   {
     title: "Retur",
-    desc: "Hvordan returnerer man abstrakte konsepter og luft på flaske?",
+    desc: "Retur, refusjon og håndtering av varer med begrenset fysisk støtte.",
     href: "/kundeservice/retur",
     badge: "30 DAGER*",
   },
   {
     title: "Betaling",
-    desc: "Vipps/Klarna (mentalt). Kvittering (teoretisk).",
+    desc: "Betalingsgrunnlag, kvitteringer og behandling av transaksjoner med varierende støtte.",
     href: "/kundeservice/betaling",
     badge: "TRYGT*",
   },
   {
     title: "Kampanjer",
-    desc: "Hvorfor er alt på tilbud hele tiden? (Kort svar: ja.)",
+    desc: "Prispress, aktive tilbud og hvorfor enkelte løfter gjentas oftere enn de innfris.",
     href: "/kundeservice/kampanjer",
     badge: "LIVE",
   },
   {
-    title: "Konto / Innlogging",
-    desc: "Innlogging er midlertidig utsolgt, men vi har råd likevel.",
+    title: "Konto / innlogging",
+    desc: "Tilgang, registrering og innloggingstilstander som ikke alltid opptrer samtidig.",
     href: "/kundeservice/konto",
-    badge: "UTSOLGT",
+    badge: "USTABIL",
   },
   {
     title: "Feil & systemmeldinger",
-    desc: "E-KASSE-503, E-COOKIE-451 og andre følelsesbaserte koder.",
+    desc: "Feilkoder, avvik og meldinger som krever mer tolkning enn løsning.",
     href: "/kundeservice/feil",
-    badge: "EKSOTISK",
+    badge: "E-KODER",
   },
 ] as const;
 
 const TOP_FAQ = [
   {
     q: "Hvor er pakken min?",
-    a: "Den er levert, ikke sendt og forsinket samtidig. Dette er en styrke ved systemet.",
+    a: "Forsendelsen kan være registrert, forsinket, videresendt eller under vurdering samtidig. Se sporingsstatus for gjeldende versjon av sannheten.",
     cta: "Spor pakke →",
     href: "/sporing/PH-000000",
   },
   {
-    q: "Når kommer varene på lager?",
-    a: "Snart. (Dette er et løfte som fornyes ved hvert besøk.)",
-    cta: "Se kampanjer →",
-    href: "/kampanjer",
+    q: "Når kommer varene inn igjen?",
+    a: "Tilgjengelighet oppdateres fortløpende. I noen tilfeller oppdateres den også uten at varen blir mer tilgjengelig.",
+    cta: "Se tilgjengelighet →",
+    href: "/utsolgt",
   },
   {
     q: "Kan jeg angre kjøpet?",
-    a: "Ja. Vi anbefaler å angre før du kjøper, under kjøpet og etter kjøpet.",
+    a: "Ja. Vi anbefaler å angre tidlig, tydelig og helst før ordren oppnår intern momentum.",
     cta: "Retur & angrerett →",
     href: "/kundeservice/retur",
   },
   {
     q: "Hvordan kontakter jeg dere?",
-    a: "Chatten svarer raskt og upresist. E-post blir vurdert av markedsavdelingen.",
-    cta: "Åpne chat →",
-    href: "/#chat", // eller bytt til siden du har chat på
+    a: "Henvendelser behandles fortløpende. Svartid påvirkes av kapasitet, kampanjenivå og øvrige forhold som måtte oppstå.",
+    cta: "Se kontaktinfo →",
+    href: "/kontakt",
   },
 ] as const;
 
 export default function KundeservicePage() {
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black">Kundeservice</h1>
           <p className="text-sm opacity-70">
-            Vi hjelper deg gjerne – så lenge det ender i kampanje.
+            Vi behandler henvendelser fortløpende og prioriterer saker med tydelig fremdriftspotensial.
           </p>
         </div>
 
-        <Link href="/kampanjer" className="text-sm font-black underline decoration-2">
-          Se kampanjer →
+        <Link href="/intern" className="text-sm font-black underline decoration-2">
+          Driftsstatus →
         </Link>
       </div>
 
-      {/* SEARCH */}
-      <div className="mt-6 rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
+      <div className="mt-6 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="flex-1">
             <label className="text-xs font-semibold opacity-70">
               Søk i hjelpesenteret
             </label>
             <input
-              placeholder='Prøv “levering”, “retur”, “utsolgt”, “hvorfor” …'
+              placeholder='Prøv “levering”, “retur”, “betaling”, “utsolgt” …'
               className="mt-1 w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-sm font-semibold placeholder:opacity-60"
             />
           </div>
 
           <div className="flex gap-2">
             <Link
-              href="/kampanjer"
-              className="rounded-xl bg-red-600 text-white px-4 py-3 font-black text-center hover:opacity-90"
+              href="/kundeservice/levering"
+              className="rounded-xl bg-black px-4 py-3 text-center font-black text-white hover:opacity-90"
             >
-              Få hjelp (tilbud) →
+              Start med levering →
             </Link>
             <Link
               href="/utsolgt"
-              className="rounded-xl bg-white text-black px-4 py-3 font-black border border-black/20 hover:bg-black/5"
+              className="rounded-xl border border-black/20 bg-white px-4 py-3 font-black hover:bg-black/5"
             >
-              Sjekk lager (0)
+              Sjekk tilgjengelighet
             </Link>
           </div>
         </div>
 
         <div className="mt-3 text-xs opacity-60">
-          Tips: Vi har bare ett svar – det kommer i rød knapp.
+          Søket brukes veiledende. Treff kan rangeres etter relevans, alvorlighetsgrad og kampanjepotensial.
         </div>
       </div>
 
-      {/* CATEGORIES */}
       <section className="mt-6">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Kategorier</h2>
             <p className="text-sm opacity-70">
-              Velg et problem. Vi matcher det med en kampanje.
+              Velg hva saken gjelder. Videre behandling tilpasses problemets form og tempo.
             </p>
           </div>
-          <Link href="/intern" className="text-sm font-black underline decoration-2">
-            Intern driftstatus →
+
+          <Link href="/faq" className="text-sm font-black underline decoration-2">
+            Se alle spørsmål →
           </Link>
         </div>
 
@@ -137,14 +134,15 @@ export default function KundeservicePage() {
             <Link
               key={c.title}
               href={c.href}
-              className="rounded-2xl bg-white border border-black/10 shadow-sm p-5 hover:shadow-md transition"
+              className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-black text-lg">{c.title}</div>
+                  <div className="text-lg font-black">{c.title}</div>
                   <div className="mt-1 text-sm opacity-80">{c.desc}</div>
                 </div>
-                <span className="text-[10px] font-black rounded bg-yellow-300 px-2 py-1 border border-black/10">
+
+                <span className="rounded border border-black/10 bg-yellow-300 px-2 py-1 text-[10px] font-black">
                   {c.badge}
                 </span>
               </div>
@@ -157,17 +155,17 @@ export default function KundeservicePage() {
         </div>
       </section>
 
-      {/* FAQ */}
       <section className="mt-10">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Mest spurt om</h2>
             <p className="text-sm opacity-70">
-              Vi har samlet de vanligste spørsmålene og gjort dem til salg.
+              De vanligste spørsmålene, samlet og sortert etter hvor ofte de vender tilbake.
             </p>
           </div>
+
           <Link href="/kampanjer" className="text-sm font-black underline decoration-2">
-            Løs alt med kampanje →
+            Se aktive kampanjer →
           </Link>
         </div>
 
@@ -175,7 +173,7 @@ export default function KundeservicePage() {
           {TOP_FAQ.map((f) => (
             <div
               key={f.q}
-              className="rounded-2xl bg-white border border-black/10 shadow-sm p-6"
+              className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm"
             >
               <div className="font-black">{f.q}</div>
               <div className="mt-2 text-sm opacity-80">{f.a}</div>
@@ -183,71 +181,73 @@ export default function KundeservicePage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={f.href}
-                  className="rounded-xl bg-black text-white px-4 py-2 font-black hover:opacity-90"
+                  className="rounded-xl bg-black px-4 py-2 font-black text-white hover:opacity-90"
                 >
                   {f.cta}
                 </Link>
                 <Link
-                  href="/kampanjer"
-                  className="rounded-xl bg-red-600 text-white px-4 py-2 font-black hover:opacity-90"
+                  href="/faq"
+                  className="rounded-xl border border-black/20 bg-white px-4 py-2 font-black hover:bg-black/5"
                 >
-                  Se kampanjer →
+                  Flere svar →
                 </Link>
               </div>
 
               <div className="mt-3 text-xs opacity-60">
-                🧾 Regnskap: “notert” • 📣 Marked: “viktig”
+                🧾 Regnskap: “notert” • ⚖️ System: “under vurdering”
               </div>
             </div>
           ))}
         </div>
       </section>
 
-
-      {/* BOTTOM CTA */}
       <section className="mt-10">
-        <div className="rounded-2xl bg-yellow-300 border border-black/10 p-6">
-          <div className="text-sm font-black">📣 Markedsavdelingen anbefaler</div>
+        <div className="rounded-2xl border border-black/10 bg-yellow-300 p-6">
+          <div className="text-sm font-black">Videre behandling</div>
           <div className="mt-1 text-xl font-black">
-            Løs problemet med et tilbud du ikke kan kjøpe.
+            Enkelte saker løses best ved å justere forventningene før de justerer deg.
           </div>
           <div className="mt-2 text-sm opacity-80">
-            Kundeservice er midlertidig utsolgt, men kampanjene leverer (mentalt).
+            Dersom saken gjelder pris, tilgjengelighet eller generell uro, kan kampanjesidene gi et tydeligere bilde av situasjonen enn kundeservice alene.
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/kampanjer"
-              className="rounded-xl bg-red-600 text-white px-5 py-3 font-black hover:opacity-90"
+              className="rounded-xl bg-red-600 px-5 py-3 font-black text-white hover:opacity-90"
             >
               Se kampanjer →
             </Link>
             <Link
               href="/butikk"
-              className="rounded-xl bg-white text-black px-5 py-3 font-black border border-black/20 hover:bg-black/5"
+              className="rounded-xl border border-black/20 bg-white px-5 py-3 font-black hover:bg-black/5"
             >
               Til butikken →
             </Link>
             <Link
-              href="/utsolgt"
-              className="rounded-xl bg-black text-white px-5 py-3 font-black hover:opacity-90"
+              href="/intern"
+              className="rounded-xl bg-black px-5 py-3 font-black text-white hover:opacity-90"
             >
-              Sjekk lager (0)
+              Se driftstatus →
             </Link>
           </div>
 
           <div className="mt-3 text-xs opacity-60">
-            *Hjelp kan forekomme. Resultat kan variere. Lager er alltid 0.
+            Hjelp kan forekomme. Resultat kan variere. Tilgjengelighet vurderes løpende.
           </div>
-          <div id="chat" className="scroll-mt-28" />
-
-
         </div>
       </section>
-      Andre henvendelser behandles manuelt.
-Svar kan forekomme i forbindelse med kampanje.
 
-prishandel@turforventninger.no
+      <section className="mt-8 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+        <div className="text-sm font-black">Andre henvendelser</div>
+        <div className="mt-2 text-sm opacity-80">
+          Henvendelser uten klar kategori behandles manuelt, fortløpende og med varierende grad av støtte.
+        </div>
+        <div className="mt-3 text-sm font-semibold">kontakt@prishandel.no</div>
+        <div className="mt-2 text-xs opacity-60">
+          Svar kan forekomme i forbindelse med kapasitet, systemavvik eller kampanjerelatert aktivitet.
+        </div>
+      </section>
     </main>
   );
 }

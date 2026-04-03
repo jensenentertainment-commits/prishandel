@@ -1,10 +1,10 @@
 "use client";
 
+import { useMemo, useRef, useEffect, useState } from "react";
 import CheckoutGate from "../components/CheckoutGate";
 import { useCart } from "../components/cart/CartProvider";
 import LedgerPanel from "../components/ledger/LedgerPanel";
 import { useLedger } from "../components/ledger/useLedger";
-import { useEffect, useRef, useMemo } from "react";
 import { getVoice, say } from "../lib/abVoice";
 
 type Product = {
@@ -16,8 +16,6 @@ type Product = {
   note: string;
   leak: string;
 };
-
-/* ---------------- helpers (FASE B drift, ingen lagring) ---------------- */
 
 function hashString(str: string) {
   let h = 0;
@@ -33,77 +31,63 @@ function prng(seed: number) {
   };
 }
 
-function pickSeed(extra: string) {
+function makeSessionSeed(extra: string) {
   const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 59)); // egen rytme (~59 min)
-  const env =
-    typeof window !== "undefined"
-      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
-      : "server";
-  return hashString(`${cycle}|${env}|${extra}`);
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 41));
+  return hashString(`cart|${cycle}|${extra}`);
 }
 
-function pick<T>(arr: T[], rnd: () => number) {
+function pick<T>(arr: readonly T[], rnd: () => number) {
   return arr[Math.floor(rnd() * arr.length)];
 }
 
-/* ---------------- copy / drift ---------------- */
-
 const HEADER_SUBLINES = [
-  "Eksistens er ikke bekreftet.",
   "Systemet registrerer tilstedeværelse.",
-  "Du er nå midlertidig ansvarlig.",
-  "Tilstand kan avvike fra opplevd tilstand.",
-];
+  "Kurven holdes åpen inntil videre.",
+  "Kjøpsintensjon er observert.",
+  "Videre behandling avhenger av mot og metode.",
+] as const;
 
 const EMPTY_LINES = [
   "Kurven er tom. Systemet har ingen innvendinger.",
-  "Kurven er tom. Marked er skuffet. Regnskap er rolig.",
-  "Ingen varer. Ingen konsekvens. Foreløpig.",
-  "Tom kurv. Dette tolkes som modenhet.",
-];
-
-const SOLDOUT_BADGES = [
-  "ALLTID UTSOLGT",
-  "UTSOLGT (STANDARD)",
-  "0 PÅ LAGER",
-  "LEVERES I TEORIEN",
-];
+  "Ingen varer registrert. Markedet reagerer moderat.",
+  "Tom kurv. Dette tolkes som tilbakeholdenhet.",
+  "Ingen linjer. Ingen fremdrift. Foreløpig.",
+] as const;
 
 const CONTINUE_LINKS = [
   "Fortsett å handle →",
   "Gå tilbake til varene →",
   "Returner til butikken →",
-  "Fortsett (valgfritt) →",
-];
-
-const SHIPPING_LINES_ZERO = [
-  "0,-* (i teorien)",
-  "0,-* (forutsatt forståelse)",
-  "0,-* (registrert)",
-  "0,-* (midlertidig)",
-];
+  "Fortsett behandlingen →",
+] as const;
 
 const PAYMENT_LINES = [
-  "Betaling: Vipps/Klarna* • Trygg handel: nesten",
-  "Betaling: mental • Trygg handel: antatt",
-  "Betaling: registrert • Trygg handel: pågående",
-  "Betaling: gjennomført i teorien • Trygg handel: uavklart",
-];
+  "Betaling: behandles ved behov • Trygg handel: ikke bestridt",
+  "Betaling: tilgjengelig i prinsippet • Trygg handel: løpende vurdert",
+  "Betaling: registrert • Trygg handel: uavklart",
+  "Betaling: mulig • Trygg handel: utilstrekkelig dokumentert",
+] as const;
 
 const CART_FOOTERS = [
-  "📣 Marked: “Kurv øker konvertering.” 🧾 Regnskap: “Kurv øker puls.”",
-  "📣 Marked: “Legg til mer.” 🧾 Regnskap: “Legg til dokumentasjon.”",
-  "📣 Marked: “Dette går bra.” 🧾 Regnskap: “Dette går.”",
-  "📣 Marked: “Ikke tenk.” 🧾 Regnskap: “Tenk.”",
-];
+  "📣 Marked: “Kurv øker sannsynlighet.” 🧾 Regnskap: “Kurv øker spørsmål.”",
+  "📣 Marked: “Legg til mer.” 🧾 Regnskap: “Legg til grunnlag.”",
+  "📣 Marked: “Dette kan fortsatt bli noe.” 🧾 Regnskap: “Det er nettopp risikoen.”",
+  "📣 Marked: “Fremdrift er fremdrift.” 🧾 Regnskap: “Ikke all fremdrift er god.”",
+] as const;
 
-const REMOVE_LABELS = [
-  "Fjern (utsolgt)",
-  "Fjern (ikke lenger hensiktsmessig)",
-  "Fjern (systemet forstår)",
-  "Fjern (registrert)",
-];
+const STOCK_LINES = [
+  "Lagerstatus: uavklart • Levering: ubestemt",
+  "Lagerstatus: ikke bekreftet • Levering: til vurdering",
+  "Lagerstatus: teoretisk • Levering: fortsatt åpen",
+] as const;
+
+const SHIPPING_ZERO_LINES = [
+  "0,- (midlertidig)",
+  "0,- (forutsatt forståelse)",
+  "0,- (registrert)",
+  "0,- (inntil videre)",
+] as const;
 
 function getCartStatus(itemCount: number, total: number) {
   if (itemCount === 0) return "Avventer initiering";
@@ -113,75 +97,101 @@ function getCartStatus(itemCount: number, total: number) {
   return "Status uavklart";
 }
 
-/* ---------------- component ---------------- */
+function getHeaderLine(itemCount: number) {
+  if (itemCount === 0) return "Du har 0 varer i kurven.";
+  if (itemCount === 1) return "Du har 1 vare i kurven.";
+  return `Du har ${itemCount} varer i kurven.`;
+}
+
+function getHeaderSecondLine(itemCount: number, total: number, fallback: string) {
+  if (itemCount === 0) return fallback;
+  if (total >= 1000) return "Dette kan påvirke systemet. Systemet foretrekker begrenset påvirkning.";
+  if (itemCount >= 3) return "Saken har utviklet seg. Utviklingen er notert.";
+  return fallback;
+}
+
+function getAvailabilityLabel(itemCount: number, total: number) {
+  if (itemCount === 0) return "Tilgjengelighet: ikke testet";
+  if (total >= 1400) return "Tilgjengelighet: sensitiv";
+  if (itemCount >= 3) return "Tilgjengelighet: ustabil";
+  return "Tilgjengelighet: uavklart";
+}
 
 export default function CartClient({ products }: { products: Product[] }) {
   const { state, setQty, remove, itemCount } = useCart();
   const ledger = useLedger();
-  const prevStatusRef = useRef<string | null>(null);
-  const appendRef = useRef(ledger.append);
   const voice = useMemo(() => getVoice(), []);
+  const prevStatusRef = useRef<string | null>(null);
 
-  const linesWithProduct = state.lines
-    .map((l) => {
-      const p = products.find((x) => x.slug === l.slug);
-      return p ? { p, qty: l.qty } : null;
-    })
-    .filter(Boolean) as { p: Product; qty: number }[];
+  const productMap = useMemo(
+    () => new Map(products.map((p) => [p.slug, p])),
+    [products]
+  );
 
-  const subtotal = linesWithProduct.reduce((s, x) => s + x.p.now * x.qty, 0);
+  const linesWithProduct = useMemo(
+    () =>
+      state.lines
+        .map((l) => {
+          const p = productMap.get(l.slug);
+          return p ? { p, qty: l.qty } : null;
+        })
+        .filter(Boolean) as { p: Product; qty: number }[],
+    [state.lines, productMap]
+  );
+
+  const subtotal = useMemo(
+    () => linesWithProduct.reduce((sum, x) => sum + x.p.now * x.qty, 0),
+    [linesWithProduct]
+  );
   const shipping = subtotal >= 499 ? 0 : 49;
   const discount = 0;
   const total = subtotal + shipping - discount;
-
   const status = getCartStatus(itemCount, total);
 
-  // drift-seed for denne siden (knyttet til status og antall)
-  const seed = useMemo(() => pickSeed(`cart|${itemCount}|${total}|${status}`), [itemCount, total, status]);
-  const rnd = useMemo(() => prng(seed), [seed]);
+  const pageSeed = useMemo(
+    () => makeSessionSeed(`${itemCount}|${total}|${status}`),
+    [itemCount, total, status]
+  );
 
-  const headerSub = useMemo(() => pick(HEADER_SUBLINES, rnd), [rnd]);
-  const emptyLine = useMemo(() => pick(EMPTY_LINES, rnd), [rnd]);
-  const soldoutBadge = useMemo(() => pick(SOLDOUT_BADGES, rnd), [rnd]);
-  const continueLabel = useMemo(() => pick(CONTINUE_LINKS, rnd), [rnd]);
-  const paymentLine = useMemo(() => pick(PAYMENT_LINES, rnd), [rnd]);
-  const cartFooter = useMemo(() => pick(CART_FOOTERS, rnd), [rnd]);
-  const removeLabel = useMemo(() => pick(REMOVE_LABELS, rnd), [rnd]);
+  const headerRnd = useMemo(() => prng(pageSeed + 11), [pageSeed]);
+  const footerRnd = useMemo(() => prng(pageSeed + 29), [pageSeed]);
+  const uiRnd = useMemo(() => prng(pageSeed + 47), [pageSeed]);
+
+  const headerSub = useMemo(() => pick(HEADER_SUBLINES, headerRnd), [headerRnd]);
+  const emptyLine = useMemo(() => pick(EMPTY_LINES, headerRnd), [headerRnd]);
+  const continueLabel = useMemo(() => pick(CONTINUE_LINKS, uiRnd), [uiRnd]);
+  const paymentLine = useMemo(() => pick(PAYMENT_LINES, footerRnd), [footerRnd]);
+  const cartFooter = useMemo(() => pick(CART_FOOTERS, footerRnd), [footerRnd]);
+  const shippingZeroLine = useMemo(() => pick(SHIPPING_ZERO_LINES, uiRnd), [uiRnd]);
+  const availabilityLabel = useMemo(
+    () => getAvailabilityLabel(itemCount, total),
+    [itemCount, total]
+  );
+
+  const topLine = useMemo(() => getHeaderLine(itemCount), [itemCount]);
+  const topSecondLine = useMemo(
+    () => getHeaderSecondLine(itemCount, total, headerSub),
+    [itemCount, total, headerSub]
+  );
 
   useEffect(() => {
     const prev = prevStatusRef.current;
 
-    // første render: sett baseline uten å logge
     if (prev === null) {
       prevStatusRef.current = status;
       return;
     }
 
-    // logg kun når status faktisk endres
     if (prev !== status) {
-      appendRef.current(`Status endret: ${prev} → ${status}`, 0);
+      ledger.append(`Status endret: ${prev} → ${status}`, 0);
       prevStatusRef.current = status;
     }
-  }, [status]);
+  }, [status, ledger]);
 
-  // “passiv aggressiv” topptekst basert på tilstand
-  const topLine = useMemo(() => {
-    if (itemCount === 0) return "Du har 0 varer i kurven.";
-    if (itemCount === 1) return "Du har 1 vare i kurven.";
-    return `Du har ${itemCount} varer i kurven.`;
-  }, [itemCount]);
-
-  const topSecondLine = useMemo(() => {
-    if (itemCount === 0) return headerSub;
-    if (total >= 1000) return "Dette kan påvirke systemet. Systemet liker ikke påvirkning.";
-    if (itemCount >= 2) return "Dette er en utvikling. Utvikling er notert.";
-    return headerSub;
-  }, [itemCount, total, headerSub]);
-
-  const shippingValue = shipping === 0 ? pick(SHIPPING_LINES_ZERO, rnd) : `${shipping},-`;
+  const shippingValue = shipping === 0 ? shippingZeroLine : `${shipping},-`;
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black">Handlekurv</h1>
@@ -196,12 +206,17 @@ export default function CartClient({ products }: { products: Product[] }) {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr,380px]">
-        {/* Linjevarer */}
-        <section className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-          <div className="border-b border-black/10 px-6 py-4 flex items-center justify-between">
-            <div className="font-black">Varer</div>
-            <div className="text-xs font-semibold rounded bg-red-600 text-white px-2 py-1">
-              {soldoutBadge}
+        <section className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
+            <div>
+              <div className="font-black">Varer</div>
+              <div className="mt-1 text-xs font-semibold opacity-60">
+                {availabilityLabel}
+              </div>
+            </div>
+
+            <div className="rounded bg-black px-2 py-1 text-xs font-semibold text-white">
+              {status}
             </div>
           </div>
 
@@ -214,103 +229,109 @@ export default function CartClient({ products }: { products: Product[] }) {
           ) : (
             <div className="divide-y divide-black/10">
               {linesWithProduct.map(({ p, qty }) => {
-                // per-linje drift (knyttet til produkt)
-                const lineRnd = prng(pickSeed(`line|${p.slug}|${qty}|${total}`));
-                const qtyNote = pick(
-                  ["(begrenset av virkeligheten)", "(begrenset av praksis)", "(begrenset av dokumentasjon)", "(begrenset av ro)"],
-                  lineRnd
-                );
-                const stockLine = pick(
-                  ["Lagerstatus: 0 • Levering: ubestemt", "Lagerstatus: 0 • Levering: til vurdering", "Lagerstatus: 0 • Levering: registrert"],
-                  lineRnd
-                );
+                const lineSeed = makeSessionSeed(`${p.slug}|${qty}`);
+                const lineRnd = prng(lineSeed);
+
+                const stockLine = pick(STOCK_LINES, lineRnd);
+                const lineState =
+                  qty >= 3
+                    ? "Linjen vurderes fortløpende."
+                    : qty === 2
+                    ? "Linjen er registrert med moderat friksjon."
+                    : "Linjen er registrert.";
 
                 return (
-                  <div key={p.slug} className="p-6 flex gap-4">
-                    <div className="h-24 w-24 rounded-xl bg-neutral-50 border border-black/10 flex items-center justify-center overflow-hidden">
-                      <img
-                        src={`/products/${p.slug}.svg`}
-                        alt={p.title}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
+                  <div key={p.slug} className="p-6">
+                    <div className="flex gap-4">
+                      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-neutral-50">
+                        <img
+                          src={`/products/${p.slug}.svg`}
+                          alt={p.title}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <a href={`/produkt/${p.slug}`} className="font-black hover:underline">
-                            {p.title}
-                          </a>
-                          <div className="text-xs opacity-70 mt-1">{stockLine}</div>
-                          <div className="mt-1 text-[11px] font-semibold opacity-60 truncate">
-                            SYS: {p.leak}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <a
+                              href={`/produkt/${p.slug}`}
+                              className="font-black hover:underline"
+                            >
+                              {p.title}
+                            </a>
+
+                            <div className="mt-1 text-xs opacity-70">{stockLine}</div>
+                            <div className="mt-1 text-[11px] font-semibold opacity-60">
+                              SYS: {p.leak}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-xs opacity-50 line-through">
+                              {p.before},-
+                            </div>
+                            <div className="text-lg font-black text-red-600">
+                              {p.now},-
+                            </div>
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-xs line-through opacity-50">{p.before},-</div>
-                          <div className="text-lg font-black text-red-600">{p.now},-</div>
-                        </div>
-                      </div>
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <div className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-neutral-50 px-3 py-2 text-sm">
+                            <span className="opacity-70">Antall</span>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <div className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-neutral-50 px-3 py-2 text-sm">
-                          <span className="opacity-70">Antall</span>
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Math.max(1, qty - 1);
+                                  setQty(p.slug, next);
+                                  ledger.append(`Antall justert: ${p.title}`, -(p.now * 0.12));
+                                }}
+                                className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
+                                aria-label="Mindre"
+                              >
+                                −
+                              </button>
 
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.max(1, qty - 1);
-                                setQty(p.slug, next);
+                              <span className="w-6 text-center font-black">{qty}</span>
 
-                                ledger.append("Avrunding (begrunnet)", -(p.now * 0.07));
-                                ledger.append(`Antall justert: ${p.title}`, -(p.now * 0.12));
-                              }}
-                              className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
-                              aria-label="Mindre"
-                            >
-                              −
-                            </button>
-                            <span className="w-6 text-center font-black">{qty}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = qty + 1;
-                                setQty(p.slug, next);
-
-                                ledger.append("Midlertidig justering", +(p.now * 0.09));
-                                ledger.append(`Antall justert: ${p.title}`, +(p.now * 0.18));
-                              }}
-                              className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
-                              aria-label="Mer"
-                            >
-                              +
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = qty + 1;
+                                  setQty(p.slug, next);
+                                  ledger.append(`Antall justert: ${p.title}`, +(p.now * 0.18));
+                                }}
+                                className="h-7 w-7 rounded-md border border-black/10 bg-white font-black hover:bg-neutral-100"
+                                aria-label="Mer"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
 
-                          <span className="text-xs opacity-60">{qtyNote}</span>
+                          <span className="rounded bg-yellow-300 px-2 py-1 text-xs font-semibold">
+                            {p.badge}
+                          </span>
+
+                          <span className="text-xs opacity-60">{lineState}</span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              remove(p.slug);
+                              ledger.append(`Linje fjernet: ${p.title}`, -(p.now * qty));
+                            }}
+                            className="ml-auto text-xs opacity-60 underline decoration-2 hover:opacity-90"
+                          >
+                            Fjern linje
+                          </button>
                         </div>
 
-                        <span className="text-xs font-semibold rounded bg-yellow-300 px-2 py-1">
-                          {p.badge}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            remove(p.slug);
-
-                            ledger.append(`Linje fjernet: ${p.title}`, -(p.now * qty));
-                            ledger.append("Intern vurdering (0,-)", 0);
-                          }}
-                          className="ml-auto text-xs opacity-60 hover:opacity-90 underline decoration-2"
-                        >
-                          {removeLabel}
-                        </button>
+                        <div className="mt-3 text-xs opacity-70">{p.note}</div>
                       </div>
-
-                      <div className="mt-3 text-xs opacity-70">{p.note}</div>
                     </div>
                   </div>
                 );
@@ -318,52 +339,34 @@ export default function CartClient({ products }: { products: Product[] }) {
             </div>
           )}
 
-          <div className="px-6 py-4 bg-neutral-50 border-t border-black/10 text-xs opacity-70">
+          <div className="border-t border-black/10 bg-neutral-50 px-6 py-4 text-xs opacity-70">
             {cartFooter}
           </div>
         </section>
 
-        {/* Oppsummering */}
         <aside className="space-y-4">
-          <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-            <div className="font-black text-lg">Oppsummering</div>
+          <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+            <div className="text-lg font-black">Oppsummering</div>
 
             <div className="mt-4 space-y-2 text-sm">
               <Row label="Delsum" value={`${subtotal},-`} />
               <Row label="Frakt" value={shippingValue} />
               <Row label="Rabatt" value={`${discount},-`} />
-              <div className="border-t border-black/10 my-3" />
+              <div className="my-3 border-t border-black/10" />
               <Row
                 label={<span className="font-black">Total</span>}
-                value={<span className="font-black text-lg">{total},-</span>}
+                value={<span className="text-lg font-black">{total},-</span>}
               />
             </div>
 
-            <div className="mt-4 rounded-xl bg-yellow-300 border border-black/10 p-4">
-              <div className="text-sm font-black">🎟 Rabattkode</div>
-              <div className="mt-2 flex gap-2">
-                <input
-                  placeholder="KAMPANJEALLTID"
-                  className="flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm"
-                />
-                <a
-                  href="/kampanjer"
-                  className="rounded-lg bg-black text-white px-4 py-2 text-sm font-black hover:opacity-90"
-                >
-                  Bruk
-                </a>
-              </div>
-              <div className="mt-2 text-xs opacity-70">
-                Kode akseptert. Besparelse: 0,- (🧾 “som forventet”).
-              </div>
-            </div>
+            <DiscountBox />
 
             <CheckoutGate total={total} itemsCount={itemCount} />
 
             <div className="mt-3 text-xs opacity-60">{paymentLine}</div>
           </div>
 
-          <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
+          <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="text-sm font-black">Levering</div>
             <div className="mt-2 text-sm opacity-80">
               Standard levering: <span className="font-semibold">ubestemt</span>
@@ -371,7 +374,8 @@ export default function CartClient({ products }: { products: Product[] }) {
               Ekspress: <span className="font-semibold">fortsatt ubestemt</span>
             </div>
             <div className="mt-3 text-xs opacity-60">
-              *Gratis frakt gjelder i teorien og ved totalsum over 499,-.
+              Gratis frakt gjelder ved totalsum over 499,-, inntil videre og uten
+              forpliktende presedens.
             </div>
 
             <LedgerPanel className="space-y-0" />
@@ -379,6 +383,39 @@ export default function CartClient({ products }: { products: Product[] }) {
         </aside>
       </div>
     </main>
+  );
+}
+
+function DiscountBox() {
+  const [code, setCode] = useState("");
+  const [applied, setApplied] = useState(false);
+
+  return (
+    <div className="mt-4 rounded-xl border border-black/10 bg-neutral-50 p-4">
+      <div className="text-sm font-black">Rabattkode</div>
+
+      <div className="mt-2 flex gap-2">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="KAMPANJEALLTID"
+          className="flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setApplied(true)}
+          className="rounded-lg bg-black px-4 py-2 text-sm font-black text-white hover:opacity-90"
+        >
+          Bruk
+        </button>
+      </div>
+
+      <div className="mt-2 text-xs opacity-70">
+        {applied
+          ? "Kode registrert. Ingen prisendring funnet for denne tilstanden."
+          : "Koder behandles fortløpende og uten garanti for effekt."}
+      </div>
+    </div>
   );
 }
 

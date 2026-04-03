@@ -28,12 +28,6 @@ const DISCLAIMERS = [
   "Rabatt gjelder der det passer oss.*",
 ] as const;
 
-const TEST_VARIANTS = [
-  { label: "Variant A", tone: "Aggressiv", color: "bg-red-600 text-white" },
-  { label: "Variant B", tone: "Trygg", color: "bg-black text-white" },
-  { label: "Variant C", tone: "Norsk-billig", color: "bg-yellow-300 text-black" },
-] as const;
-
 function randIntSeed(seed: number, min: number, max: number) {
   const span = max - min + 1;
   return min + (seed % span);
@@ -41,31 +35,68 @@ function randIntSeed(seed: number, min: number, max: number) {
 
 export default function MarkedsavdelingClient() {
   const { mounted, visit, seed } = useVisitVariant("markedsavdeling");
+  const stableSeed = mounted ? seed : 0;
 
-  // 🔒 Før mount: returnér billige/stabile default-verdier.
-  const k1 = useMemo<Kind>(() => (mounted ? pick(KINDS, seed) : "generic"), [mounted, seed]);
-  const k2 = useMemo<Kind>(() => (mounted ? pick(KINDS, seed >>> 3) : "generic"), [mounted, seed]);
+  const k1 = pick(KINDS, stableSeed);
+  const k2 = pick(KINDS, stableSeed >>> 3);
 
-  const marketLine = useMemo(() => (mounted ? voices.market.say(k1) : ""), [mounted, k1]);
-  const ledgerLine = useMemo(() => (mounted ? voices.ledger.say(k1) : ""), [mounted, k1]);
+  const marketLine = useMemo(() => {
+    if (!mounted) return "Kampanjeproduksjon initialiseres.";
+    return voices.market.say(k1);
+  }, [mounted, k1]);
 
-  const disclaimer = useMemo(
-    () => (mounted ? pick(DISCLAIMERS, seed >>> 5) : DISCLAIMERS[0]),
-    [mounted, seed],
-  );
+  const ledgerLine = useMemo(() => {
+    if (!mounted) return "Budsjettmessig grunnlag er ikke vurdert.";
+    return voices.ledger.say(k1);
+  }, [mounted, k1]);
 
-  const abSloganA = useMemo(() => (mounted ? pick(SLOGANS, seed >>> 7) : SLOGANS[0]), [mounted, seed]);
-  const abSloganB = useMemo(() => (mounted ? pick(SLOGANS, seed >>> 9) : SLOGANS[1] ?? SLOGANS[0]), [mounted, seed]);
+  const disclaimer = useMemo(() => {
+    return pick(DISCLAIMERS, stableSeed >>> 5);
+  }, [stableSeed]);
 
-  // “Tall” som alltid er overdrevet, men stabilt per besøk
-  const conversion = useMemo(() => (mounted ? randIntSeed(h32(`conv:${seed}`), 187, 642) : 0), [mounted, seed]);
-  const urgency = useMemo(() => (mounted ? randIntSeed(h32(`urg:${seed}`), 91, 100) : 0), [mounted, seed]);
-  const clicks = useMemo(() => (mounted ? randIntSeed(h32(`clk:${seed}`), 1203, 9321) : 0), [mounted, seed]);
-  const complaints = useMemo(() => (mounted ? randIntSeed(h32(`cmp:${seed}`), 0, 3) : 0), [mounted, seed]);
-  const campaigns = useMemo(() => (mounted ? randIntSeed(h32(`cam:${seed}`), 12, 28) : 0), [mounted, seed]);
+  const abSloganA = useMemo(() => {
+    return pick(SLOGANS, stableSeed >>> 7);
+  }, [stableSeed]);
+
+  const abSloganB = useMemo(() => {
+    return pick(SLOGANS, stableSeed >>> 9);
+  }, [stableSeed]);
+
+  const scoreA = useMemo(() => {
+    return randIntSeed(h32(`sa:${stableSeed}`), 51, 99);
+  }, [stableSeed]);
+
+  const scoreB = useMemo(() => {
+    return randIntSeed(h32(`sb:${stableSeed}`), 51, 99);
+  }, [stableSeed]);
+
+  const pressure = useMemo(() => {
+    return randIntSeed(h32(`press:${stableSeed}`), 92, 100);
+  }, [stableSeed]);
+
+  const conversion = useMemo(() => {
+    return randIntSeed(h32(`conv:${stableSeed}`), 187, 642);
+  }, [stableSeed]);
+
+  const resistance = useMemo(() => {
+    return randIntSeed(h32(`res:${stableSeed}`), 71, 99);
+  }, [stableSeed]);
+
+  const complaints = useMemo(() => {
+    return randIntSeed(h32(`cmp:${stableSeed}`), 0, 3);
+  }, [stableSeed]);
+
+  const campaigns = useMemo(() => {
+    return randIntSeed(h32(`cam:${stableSeed}`), 12, 28);
+  }, [stableSeed]);
+
+  const updatedAt = useMemo(() => {
+    const hh = String(randIntSeed(h32(`hh:${stableSeed}`), 8, 16)).padStart(2, "0");
+    const mm = String(randIntSeed(h32(`mm:${stableSeed}`), 0, 59)).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }, [stableSeed]);
 
   const generatedHeadline = useMemo(() => {
-    if (!mounted) return "";
     const noun = pick(
       [
         "Verdighet",
@@ -76,281 +107,236 @@ export default function MarkedsavdelingClient() {
         "Tålmodighet",
         "Regnskapsgodkjenning",
       ] as const,
-      seed >>> 11,
+      stableSeed >>> 11,
     );
-    return `${pick(SLOGANS, seed >>> 13)} ${noun}`;
-  }, [mounted, seed]);
 
-  const generatedBody = useMemo(() => (mounted ? voices.market.say(k2) : ""), [mounted, k2]);
+    return `${pick(SLOGANS, stableSeed >>> 13)} ${noun}`;
+  }, [stableSeed]);
 
-  // ⚠️ voices.ledger.ps() kan være "random" per kall, så vi kjører den kun etter mount.
+  const generatedBody = useMemo(() => {
+    if (!mounted) return "Kampanjetekst klargjøres for markedstilpasset publisering.";
+    return voices.market.say(k2);
+  }, [mounted, k2]);
+
   const generatedFoot = useMemo(() => {
-    if (!mounted) return "🧾 Regnskapsfører: ...";
+    if (!mounted) return "🧾 Regnskapsfører: Vurderes separat.";
     return `🧾 Regnskapsfører: ${voices.ledger.ps()}`;
-  }, [mounted, seed]);
+  }, [mounted, stableSeed]);
 
-  // “Sist oppdatert”: føles live, men er bare en “intern” stamp
-  const updatedAt = useMemo(() => {
-    if (!mounted) return "";
-    const hh = String(randIntSeed(h32(`hh:${seed}`), 8, 16)).padStart(2, "0");
-    const mm = String(randIntSeed(h32(`mm:${seed}`), 0, 59)).padStart(2, "0");
-    return `${hh}:${mm}`;
-  }, [mounted, seed]);
-
-  const scoreA = useMemo(() => (mounted ? randIntSeed(h32(`sa:${seed}`), 51, 99) : 0), [mounted, seed]);
-  const scoreB = useMemo(() => (mounted ? randIntSeed(h32(`sb:${seed}`), 51, 99) : 0), [mounted, seed]);
-
-  const pressure = useMemo(() => (mounted ? randIntSeed(h32(`press:${seed}`), 92, 100) : 0), [mounted, seed]);
-
-  if (!mounted) return null;
+  const ticker = useMemo(() => {
+    return [
+      `TRYKK ${pressure}%`,
+      `KONVERTERING ${conversion}%`,
+      `KLAGEGRAD ${complaints}%`,
+      `MOTSTAND ${resistance}%`,
+      `AKTIVE KAMPANJER ${campaigns}`,
+    ].join("  •  ");
+  }, [pressure, conversion, complaints, resistance, campaigns]);
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10">
-      {/* header */}
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-yellow-300 text-black px-3 py-1 text-xs font-black border border-black/10">
-            📣 MARKEDSAVDELING / KAMPANJELAB
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-yellow-300 px-3 py-1 text-xs font-black text-black">
+            📣 MARKEDSAVDELING / INTERN PRODUKSJONSFLATE
           </div>
-          <h1 className="mt-3 text-4xl font-black tracking-tight">Kampanje-generator</h1>
-          <p className="mt-2 text-sm opacity-80 max-w-2xl">
-            Denne siden er intern og bør ikke være synlig. Den brukes til å produsere kampanjer
-            raskere enn virkeligheten.
+
+          <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
+            Kampanje-generator
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm opacity-80">
+            Denne siden brukes til å produsere kampanjer raskere enn virkeligheten
+            rekker å protestere.
           </p>
+
           <div className="mt-2 text-xs font-semibold opacity-60">
-            Besøk: <span className="font-black">{visit}</span> • Modus: “produksjon”
+            Besøk: <span className="font-black">{mounted ? visit : "—"}</span> •
+            Oppdatering: {updatedAt} • Modus: produksjon
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <a
             href="/kampanjer"
-            className="rounded-xl bg-red-600 text-white px-4 py-2 font-black hover:opacity-90"
+            className="rounded-xl bg-red-600 px-4 py-2 font-black text-white hover:opacity-90"
           >
-            PUBLISER KAMPANJER →
+            Publiser kampanjer →
           </a>
           <a
             href="/intern"
-            className="rounded-xl bg-white text-black px-4 py-2 font-black border border-black/20 hover:bg-black/5"
+            className="rounded-xl border border-black/20 bg-white px-4 py-2 font-black text-black hover:bg-black/5"
           >
             Tilbake til intern →
           </a>
         </div>
       </div>
 
-      {/* KPI row */}
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Kpi label="Konvertering" value={`${conversion}%`} hint="📣 Marked: fantastisk" />
-        <Kpi label="Hastverk" value={`${urgency}%`} hint="📣 Marked: mer!" />
-        <Kpi label="Klikk" value={clicks.toLocaleString("nb-NO")} hint="📣 Marked: høyere" />
-        <Kpi label="Klagegrad" value={`${complaints}%`} hint="📣 Marked: lavt" />
-        <Kpi label="Aktive kampanjer" value={campaigns.toString()} hint="🧾 Regnskap: nei" />
+        <Kpi label="Trykk" value={`${pressure}%`} hint="Passe høyt" />
+        <Kpi label="Følelseseffekt" value={`${conversion}%`} hint="Uverifisert" />
+        <Kpi label="Klagegrad" value={`${complaints}%`} hint="Akseptabelt lav" />
+        <Kpi label="Regnskapsmotstand" value={`${resistance}%`} hint="Vedvarende" />
+        <Kpi label="Aktive trykkpunkt" value={campaigns.toString()} hint="For mange" />
       </div>
 
-      {/* split */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-2">
-        {/* propaganda */}
-        <section className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-black/10 bg-red-600 text-white flex items-center justify-between">
+      <section className="mt-8 overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm">
+        <div className="border-b border-black/10 bg-black px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-yellow-300">
+          {ticker}
+        </div>
+
+        <div className="border-b border-black/10 bg-red-600 px-5 py-5 text-white">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-black rounded bg-white/15 px-2 py-1 inline-block">
+              <div className="inline-flex items-center gap-2 rounded bg-white/15 px-2 py-1 text-xs font-black">
+                <span className="inline-block h-2 w-2 rounded-full bg-white" />
                 LIVE PROPAGANDA
               </div>
               <div className="mt-2 text-lg font-black">Broadcast</div>
               <div className="text-xs opacity-90">Sist oppdatert: {updatedAt}*</div>
             </div>
 
-            <span className="text-xs font-black rounded bg-white/15 px-2 py-1">AKTIV</span>
-          </div>
-
-          <div className="p-5 space-y-3">
-            <div className="rounded-xl bg-yellow-300 border border-black/10 p-4">
-              <div className="text-sm font-black">{marketLine}</div>
-              <div className="mt-2 text-xs opacity-70">{disclaimer}</div>
-              <div className="mt-2 text-[11px] opacity-60">{ledgerLine}</div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              <FakeAction label="Start kampanje" tag="NÅ" tone="market" />
-              <FakeAction label="Forleng kampanje" tag="IGJEN" tone="market" />
-              <FakeAction label="Øk rabatt" tag="-90%*" tone="market" />
-              <FakeAction label="Skru opp trykket" tag="100%" tone="market" />
-            </div>
-
-            <div className="rounded-xl bg-white border border-black/10 p-4">
-              <div className="text-sm font-black">Intern note</div>
-              <p className="mt-2 text-sm opacity-80">
-                Husk: det viktigste er at det ser ut som det går fort. Hvis noe er utsolgt, er det et tegn
-                på suksess.
-              </p>
-              <div className="mt-3 text-xs opacity-60">🧾 Regnskapsfører: Dette er notert.</div>
-            </div>
-          </div>
-        </section>
-
-        {/* A/B-test */}
-        <section className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-black/10 bg-black text-white flex items-center justify-between">
-            <div>
-              <div className="text-xs font-black rounded bg-white/15 px-2 py-1 inline-block">
-                A/B-TEST (uverifisert)
-              </div>
-              <div className="mt-2 text-lg font-black">Overskrift-duell</div>
-              <div className="text-xs opacity-70">Vinner: alltid marked</div>
-            </div>
-
-            <a
-              href="/kampanjer"
-              className="text-xs font-black rounded bg-white/15 px-2 py-1 hover:opacity-90"
-            >
-              Se kampanjer →
-            </a>
-          </div>
-
-          <div className="p-5 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <VariantCard
-                title={abSloganA}
-                label={TEST_VARIANTS[0].label}
-                tone={TEST_VARIANTS[0].tone}
-                badge={TEST_VARIANTS[0].color}
-                score={scoreA}
-              />
-              <VariantCard
-                title={abSloganB}
-                label={TEST_VARIANTS[1].label}
-                tone={TEST_VARIANTS[1].tone}
-                badge={TEST_VARIANTS[1].color}
-                score={scoreB}
-              />
-            </div>
-
-            <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
-              <div className="text-sm font-black">Resultat</div>
-              <div className="mt-2 text-sm font-semibold">
-                📣 Marked: “Begge vinner. Vi publiserer begge.”
-              </div>
-              <div className="mt-2 text-[11px] opacity-60">🧾 Regnskapsfører: Dette gir primært følelse.</div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-3">
-              <a
-                href="/kampanjer"
-                className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-black hover:opacity-90 text-center"
-              >
-                Publiser A →
-              </a>
-              <a
-                href="/kampanjer"
-                className="rounded-lg bg-black text-white px-4 py-2 text-sm font-black hover:opacity-90 text-center"
-              >
-                Publiser B →
-              </a>
-              <a
-                href="/kampanjer"
-                className="rounded-lg bg-yellow-300 text-black px-4 py-2 text-sm font-black hover:opacity-90 text-center border border-black/10"
-              >
-                Publiser alt →
-              </a>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Generated campaign */}
-      <section className="mt-8 rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-black/10 bg-neutral-50 flex items-center justify-between">
-          <div>
-            <div className="text-lg font-black">Generert kampanje</div>
-            <div className="text-xs opacity-70">Auto-produseres kontinuerlig • kvalitet uavklart</div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/kampanjer"
-              className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-black hover:opacity-90"
-            >
-              Publiser →
-            </a>
-            <a
-              href="/butikk"
-              className="rounded-lg bg-white text-black px-4 py-2 text-sm font-black border border-black/20 hover:bg-black/5"
-            >
-              Se i butikk →
-            </a>
+            <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">
+              AKTIV DISTRIBUSJON
+            </span>
           </div>
         </div>
 
-        <div className="p-5 grid gap-4 lg:grid-cols-[1fr,340px]">
-          <div className="rounded-2xl border border-black/10 bg-white p-5">
-            <div className="text-xs font-black rounded bg-yellow-300 text-black px-2 py-1 inline-block border border-black/10">
-              KAMPANJE
-            </div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight">{generatedHeadline}</h2>
-            <p className="mt-2 text-sm opacity-80">{generatedBody}</p>
+        <div className="grid gap-4 p-5 lg:grid-cols-[1.45fr,0.9fr]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-black/10 bg-yellow-300 p-6 text-black shadow-sm">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">
+                Aktiv melding
+              </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href="/kampanjer"
-                className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-black hover:opacity-90"
-              >
-                Kjøp nå →
-              </a>
-              <a
-                href="/utsolgt"
-                className="rounded-lg bg-white text-black px-4 py-2 text-sm font-black border border-black/20 hover:bg-black/5"
-              >
-                Sjekk lager (0)
-              </a>
+              <div className="mt-3 text-4xl font-black leading-[1.02] tracking-tight md:text-5xl">
+                {marketLine}
+              </div>
+
+              <div className="mt-4 max-w-2xl text-sm opacity-80">{disclaimer}</div>
+
+              <div className="mt-4 rounded-2xl border border-black/10 bg-white/50 p-4 text-xs opacity-80">
+                {ledgerLine}
+              </div>
             </div>
 
-            <div className="mt-4 text-xs opacity-60">
-              *{disclaimer} <br />
-              {generatedFoot}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <FakeAction label="Start kampanje" tag="NÅ" />
+              <FakeAction label="Forleng kampanje" tag="IGJEN" />
+              <FakeAction label="Øk rabatt" tag="-90%*" />
+              <FakeAction label="Skru opp trykket" tag="100%" />
+            </div>
+
+            <div className="rounded-2xl border border-black/10 bg-neutral-50 p-4">
+              <div className="text-sm font-black">Intern note</div>
+              <p className="mt-2 text-sm opacity-80">
+                Hvis noe er utsolgt, styrker det kampanjen. Hvis noe ikke finnes,
+                kan det fortsatt kommuniseres med høy selvtillit.
+              </p>
+              <div className="mt-3 text-xs opacity-60">
+                🧾 Regnskapsfører: Dette er observert, ikke anbefalt.
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-black/10 bg-white p-6">
+              <div className="inline-block rounded bg-black px-2 py-1 text-[11px] font-black text-white">
+                GENERERT KAMPANJE
+              </div>
+
+              <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+                {generatedHeadline}
+              </h2>
+
+              <p className="mt-3 max-w-2xl text-sm opacity-80">{generatedBody}</p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <a
+                  href="/kampanjer"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-black text-white hover:opacity-90"
+                >
+                  Publiser →
+                </a>
+                <a
+                  href="/butikk"
+                  className="rounded-lg border border-black/20 bg-white px-4 py-2 text-sm font-black text-black hover:bg-black/5"
+                >
+                  Se i butikk →
+                </a>
+              </div>
+
+              <div className="mt-4 text-xs opacity-60">
+                *{disclaimer}
+                <br />
+                {generatedFoot}
+              </div>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-neutral-50 border border-black/10 p-4 space-y-3">
-            <div className="text-sm font-black">Hurtigverktøy</div>
-
-            <div className="rounded-xl bg-white border border-black/10 p-4">
-              <div className="text-sm font-black">CTA-knapptekst</div>
-              <div className="mt-2 grid gap-2">
-                {["KJØP NÅ", "SE TILBUD", "HASTER", "MER KUPP"].map((t, i) => (
-                  <div
-                    key={t}
-                    className="flex items-center justify-between rounded-lg border border-black/10 px-3 py-2 text-sm font-black"
-                  >
-                    <span>{t}</span>
-                    <span className="text-[10px] rounded bg-black text-white px-2 py-0.5">
-                      {i === (seed % 4) ? "VALGT" : "AKTIV"}
-                    </span>
-                  </div>
-                ))}
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-3xl border border-black/10 bg-white">
+              <div className="border-b border-black/10 bg-black px-4 py-4 text-white">
+                <div className="inline-block rounded bg-white/15 px-2 py-1 text-xs font-black">
+                  A/B-TEST
+                </div>
+                <div className="mt-2 text-lg font-black">Overskrift-duell</div>
+                <div className="text-xs opacity-70">Vinner: alltid marked</div>
               </div>
-              <div className="mt-2 text-[11px] opacity-60">🧾 Regnskapsfører: Tallene er ikke konsultert.</div>
+
+              <div className="space-y-3 p-4">
+                <VariantCard
+                  title={abSloganA}
+                  label="Variant A"
+                  tone="Aggressiv"
+                  badge="bg-red-600 text-white"
+                  score={scoreA}
+                />
+                <VariantCard
+                  title={abSloganB}
+                  label="Variant B"
+                  tone="Trygg"
+                  badge="bg-black text-white"
+                  score={scoreB}
+                />
+
+                <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
+                  <div className="text-sm font-black">Resultat</div>
+                  <div className="mt-2 text-sm font-semibold">
+                    📣 Marked: “Begge vinner. Vi publiserer begge.”
+                  </div>
+                  <div className="mt-2 text-[11px] opacity-60">
+                    🧾 Regnskapsfører: Dette gir primært følelse.
+                  </div>
+                </div>
+
+                <a
+                  href="/kampanjer"
+                  className="block rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-black text-white hover:opacity-90"
+                >
+                  Publiser vinner →
+                </a>
+              </div>
             </div>
 
-            <div className="rounded-xl bg-white border border-black/10 p-4">
-              <div className="text-sm font-black">Trykkmåler</div>
-              <div className="mt-2 h-3 rounded-full bg-black/10 overflow-hidden">
+            <div className="rounded-2xl border border-black/10 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black">Trykkmåler</div>
+                <span className="rounded bg-yellow-300 px-2 py-1 text-[10px] font-black text-black">
+                  HØYT
+                </span>
+              </div>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-black/10">
                 <div className="h-full bg-red-600" style={{ width: `${pressure}%` }} />
               </div>
-              <div className="mt-2 text-xs opacity-70">📣 Marked: “maks” • 🧾 Regnskap: “nei”</div>
-            </div>
-
-            <div className="rounded-xl bg-white border border-black/10 p-4">
-              <div className="text-sm font-black">Fotnote-generator</div>
-              <div className="mt-2 text-sm opacity-80">{pick(DISCLAIMERS, seed >>> 15)}</div>
-              <div className="mt-2 text-[11px] opacity-60">🧾 Regnskapsfører: {voices.ledger.ps()}</div>
+              <div className="mt-2 text-xs opacity-70">
+                📣 Marked: “maks” • 🧾 Regnskap: “fortsatt nei”
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <div className="mt-8 text-xs opacity-60">
-        *Denne siden er intern. Hvis du leser dette, har du sannsynligvis funnet den ved en feil.
-        Markedsavdelingen kaller det “organisk trafikk”.
+        *Denne siden er intern. Hvis du leser dette, regnes det som organisk trafikk.
       </div>
     </main>
   );
@@ -358,7 +344,7 @@ export default function MarkedsavdelingClient() {
 
 function Kpi(props: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-4">
+    <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
       <div className="text-xs opacity-70">{props.label}</div>
       <div className="mt-1 text-2xl font-black tracking-tight">{props.value}</div>
       <div className="mt-2 text-xs opacity-70">{props.hint}</div>
@@ -366,21 +352,16 @@ function Kpi(props: { label: string; value: string; hint: string }) {
   );
 }
 
-function FakeAction(props: { label: string; tag: string; tone: "market" | "ledger" }) {
-  const tagClasses =
-    props.tone === "market"
-      ? "bg-yellow-300 text-black border border-black/10"
-      : "bg-black text-white border border-white/10";
-
+function FakeAction(props: { label: string; tag: string }) {
   return (
     <button
       type="button"
-      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-left hover:bg-black/5 active:scale-[0.99]"
+      className="rounded-2xl border border-black/10 bg-white px-4 py-4 text-left hover:bg-black/5 active:scale-[0.99]"
       aria-label={props.label}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="font-black">{props.label}</div>
-        <span className={`shrink-0 text-[10px] font-black rounded px-2 py-0.5 ${tagClasses}`}>
+        <span className="shrink-0 rounded border border-black/10 bg-yellow-300 px-2 py-0.5 text-[10px] font-black text-black">
           {props.tag}
         </span>
       </div>
@@ -397,6 +378,7 @@ function VariantCard(props: {
   score: number;
 }) {
   const scoreLabel = props.score > 90 ? "KRITISK BRA" : props.score > 75 ? "BRA" : "OK";
+
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-4">
       <div className="flex items-start justify-between gap-2">
@@ -405,16 +387,19 @@ function VariantCard(props: {
           <div className="mt-1 text-lg font-black">{props.title}</div>
           <div className="mt-1 text-xs opacity-60">{props.tone}</div>
         </div>
-        <span className={`text-[10px] font-black rounded px-2 py-1 ${props.badge}`}>
+
+        <span className={`rounded px-2 py-1 text-[10px] font-black ${props.badge}`}>
           {scoreLabel}
         </span>
       </div>
 
-      <div className="mt-3 h-2 rounded-full bg-black/10 overflow-hidden">
-        <div className="h-full bg-green-600" style={{ width: `${props.score}%` }} />
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/10">
+        <div className="h-full bg-red-600" style={{ width: `${props.score}%` }} />
       </div>
 
-      <div className="mt-2 text-[11px] opacity-60">🧾 Regnskapsfører: Dette gir primært følelse.</div>
+      <div className="mt-2 text-[11px] opacity-60">
+        🧾 Regnskapsfører: Dette er ikke metodegodkjent.
+      </div>
     </div>
   );
 }

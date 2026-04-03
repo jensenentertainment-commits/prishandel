@@ -96,10 +96,9 @@ export default function KampanjerPage() {
           </div>
 
           <h1 className="mt-3 text-3xl md:text-4xl font-black">Kampanjer</h1>
-          <p className="mt-2 text-sm md:text-base opacity-75 max-w-2xl">
-            Her finner du alle kampanjer som avsluttes snart, forlenges straks, og
-            gjenoppstår ved refresh. Klikk deg rundt som om dette fungerer.
-          </p>
+          <p className="mt-2 max-w-2xl text-sm md:text-base opacity-75">
+  Her finner du kampanjer som avsluttes snart, forlenges ved behov og opprettholdes så lenge trykket anses forsvarlig.
+</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -192,9 +191,7 @@ export default function KampanjerPage() {
                   <div className="text-xs font-black rounded bg-neutral-900 text-white px-2 py-1 inline-block">
                     {c.timer}
                   </div>
-                  <div className="mt-2 text-xs opacity-60">
-                    (resettes ved refresh)
-                  </div>
+                  
                 </div>
               </div>
 

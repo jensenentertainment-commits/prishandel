@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef,useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { voices } from "../lib/voices";
 import { Icon } from "./Icon";
 import {
   Menu,
-  ShoppingCart,
   Truck,
   CreditCard,
   Receipt,
@@ -29,43 +35,6 @@ const NAV_SUGGESTIONS = [
   "avventer vurdering",
   "ikke relevant",
 ] as const;
-
-const NAV_SEARCH_SEED_KEY = "prh_nav_search_seed_v1";
-
-function getSessionSeed(key: string) {
-  try {
-    const existing = sessionStorage.getItem(key);
-    if (existing) return existing;
-    const seed = String(Math.floor(Math.random() * 1_000_000_000));
-    sessionStorage.setItem(key, seed);
-    return seed;
-  } catch {
-    return String(Math.floor(Math.random() * 1_000_000_000));
-  }
-}
-
-function hash(seed: string, s: string) {
-  let h = 2166136261;
-  const str = `${seed}:${s}`;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-
-function fightIconFor(text?: string) {
-  if (!text) return Megaphone;
-  if (text.trim().startsWith("🧾")) return Receipt;
-  if (text.trim().startsWith("⚡")) return Zap;
-  return Megaphone;
-}
-
-function pick<T>(arr: readonly T[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 
 const LOGIN_PITCHES = [
   {
@@ -112,112 +81,144 @@ const MENU_SALES = [
   "Restlager-salg (uten restlager)",
 ] as const;
 
+const SESSION_KEYS = {
+  navSeed: "prh_nav_seed_v3",
+  loginPitchBase: "prh_login_pitch_base_v3",
+  menuTease: "prh_menu_tease_v3",
+} as const;
+
 type Kind = "generic" | "price" | "shipping" | "coupon" | "stock";
+type FightItem = { text: string };
 
-export default function ShopNavbar() {
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [pitchIdx, setPitchIdx] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-const [navQ, setNavQ] = useState("");
-const [navSuggestOpen, setNavSuggestOpen] = useState(false);
-const [navSeed, setNavSeed] = useState("0");
-const navWrapRef = useRef<HTMLDivElement | null>(null);
-
-useEffect(() => {
-  // seed kun på klient
-  setNavSeed(getSessionSeed(NAV_SEARCH_SEED_KEY));
-}, []);
-
-useEffect(() => {
-  const onDown = (e: MouseEvent) => {
-    if (!navWrapRef.current) return;
-    if (!navWrapRef.current.contains(e.target as Node)) setNavSuggestOpen(false);
-  };
-  window.addEventListener("mousedown", onDown);
-  return () => window.removeEventListener("mousedown", onDown);
-}, []);
-
-useEffect(() => {
-  setMounted(true);
-}, []);
-
-const navSuggestions = useMemo(() => {
-  const t = navQ.trim().toLowerCase();
-
-  // helt “system”: når feltet er tomt, vis tre forslag likevel
-  if (t.length === 0) {
-    return ["rabatt i teorien", "lager (0)", "midlertidig løsning"];
+function hashString(str: string) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
+  return h >>> 0;
+}
 
-  if (t.length < 2) return [];
+function getSessionSeed(key: string) {
+  try {
+    const existing = sessionStorage.getItem(key);
+    if (existing) return existing;
 
-  const matches = NAV_SUGGESTIONS.filter((s) => s.toLowerCase().includes(t));
+    const seed = String(Math.floor(Math.random() * 1_000_000_000));
+    sessionStorage.setItem(key, seed);
+    return seed;
+  } catch {
+    return "0";
+  }
+}
 
-  // hvis lite match: bruk deterministisk “absurd” sortering
-  const pool = [...NAV_SUGGESTIONS].sort(
-    (a, b) => hash(navSeed, a) - hash(navSeed, b),
-  );
+function sessionIndex(key: string, length: number) {
+  const seed = getSessionSeed(key);
+  return hashString(seed) % length;
+}
 
-  const combined = [...matches, ...pool.filter((x) => !matches.includes(x))];
-  return combined.slice(0, 3);
-}, [navQ, navSeed]);
+function deterministicPick<T>(arr: readonly T[], key: string) {
+  return arr[sessionIndex(key, arr.length)];
+}
 
-// fight ticker
-const [kind, setKind] = useState<Kind>("generic");
+function rotateIndex(base: number, offset: number, length: number) {
+  return (base + offset) % length;
+}
 
-// før mount: alltid generic (stabil SSR/hydration)
-// etter mount: voices.duel(kind) roterer som før
-const fight = useMemo(() => {
-  if (!mounted) {
-    // Må være 100% stabilt mellom server + første client render
+function fightIconFor(text?: string) {
+  const t = (text ?? "").trim();
+  if (t.startsWith("🧾")) return Receipt;
+  if (t.startsWith("⚡")) return Zap;
+  if (t.startsWith("📣")) return Megaphone;
+  return Megaphone;
+}
+
+function stripLeadEmoji(text?: string) {
+  if (!text) return "";
+  return text.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u, "");
+}
+
+function buildFightKind(seed: string, tick: number): Kind {
+  const kinds: Kind[] = ["generic", "price", "shipping", "coupon", "stock"];
+  const idx = hashString(`${seed}:${tick}:fight`) % kinds.length;
+  return kinds[idx];
+}
+
+function normalizeFight(input: unknown): FightItem[] {
+  if (!Array.isArray(input)) {
     return [
       { text: "📣 Marked: Alltid kampanje." },
       { text: "🧾 Regnskap: Alltid bekymret." },
     ];
   }
-  return voices.duel(kind);
-}, [kind, mounted]);
 
-// menuTease: før mount, ikke random
-type MenuSale = (typeof MENU_SALES)[number];
-const [menuTease, setMenuTease] = useState<MenuSale>(MENU_SALES[0]);
+  const normalized = input
+    .map((item) => {
+      if (typeof item === "string") return { text: item };
+      if (
+        item &&
+        typeof item === "object" &&
+        "text" in item &&
+        typeof (item as { text?: unknown }).text === "string"
+      ) {
+        return { text: (item as { text: string }).text };
+      }
+      return null;
+    })
+    .filter((item): item is FightItem => Boolean(item));
 
+  if (normalized.length >= 2) return normalized.slice(0, 2);
 
-const pitch = useMemo(() => LOGIN_PITCHES[pitchIdx], [pitchIdx]);
-useEffect(() => {
-  if (!mounted) return;
-  if (!menuOpen) return;
-  setMenuTease(pick(MENU_SALES));
-}, [menuOpen, mounted]);
-
-useEffect(() => {
-  if (!mounted) return;
-
-  const kinds: Kind[] = ["generic", "price", "shipping", "coupon", "stock"];
-  const id = setInterval(() => {
-    setKind(pick(kinds));
-  }, 4500);
-
-  return () => clearInterval(id);
-}, [mounted]);
-
-  // esc closes
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-  setLoginOpen(false);
-  setMenuOpen(false);
-  setNavSuggestOpen(false);
+  return [
+    { text: normalized[0]?.text ?? "📣 Marked: Alltid kampanje." },
+    { text: normalized[1]?.text ?? "🧾 Regnskap: Alltid bekymret." },
+  ];
 }
-    }
-    setNavSuggestOpen(false);
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+export default function ShopNavbar() {
+  const [mounted, setMounted] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  const [navQ, setNavQ] = useState("");
+  const [navSuggestOpen, setNavSuggestOpen] = useState(false);
+
+  const [navSeed, setNavSeed] = useState("0");
+  const [tick, setTick] = useState(0);
+  const [loginPitchOffset, setLoginPitchOffset] = useState(0);
+
+  const navWrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setNavSeed(getSessionSeed(SESSION_KEYS.navSeed));
   }, []);
 
-  // lock scroll when menu open
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!navWrapRef.current) return;
+      if (!navWrapRef.current.contains(e.target as Node)) {
+        setNavSuggestOpen(false);
+      }
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLoginOpen(false);
+        setMenuOpen(false);
+        setNavSuggestOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   useEffect(() => {
     if (!menuOpen) return;
     const prev = document.body.style.overflow;
@@ -227,344 +228,496 @@ useEffect(() => {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!mounted) return;
+    const id = window.setInterval(() => {
+      setTick((t) => t + 1);
+    }, 4500);
+    return () => window.clearInterval(id);
+  }, [mounted]);
+
+  const fight = useMemo<FightItem[]>(() => {
+    if (!mounted) {
+      return [
+        { text: "📣 Marked: Alltid kampanje." },
+        { text: "🧾 Regnskap: Alltid bekymret." },
+      ];
+    }
+
+    return normalizeFight(voices.duel(buildFightKind(navSeed, tick)));
+  }, [mounted, navSeed, tick]);
+
+  const navSuggestions = useMemo(() => {
+    const t = navQ.trim().toLowerCase();
+
+    if (t.length === 0) {
+      return ["rabatt i teorien", "lager (0)", "midlertidig løsning"];
+    }
+
+    if (t.length < 2) return [];
+
+    const matches = NAV_SUGGESTIONS.filter((s) => s.toLowerCase().includes(t));
+    const pool = [...NAV_SUGGESTIONS].sort(
+      (a, b) => hashString(`${navSeed}:${a}`) - hashString(`${navSeed}:${b}`)
+    );
+
+    return [...matches, ...pool.filter((x) => !matches.includes(x))].slice(0, 3);
+  }, [navQ, navSeed]);
+
+  const loginPitchBaseIndex = useMemo(
+    () => sessionIndex(SESSION_KEYS.loginPitchBase, LOGIN_PITCHES.length),
+    []
+  );
+
+  const loginPitch = useMemo(() => {
+    const idx = rotateIndex(
+      loginPitchBaseIndex,
+      loginPitchOffset,
+      LOGIN_PITCHES.length
+    );
+    return LOGIN_PITCHES[idx];
+  }, [loginPitchBaseIndex, loginPitchOffset]);
+
+  const menuTease = useMemo(
+    () => deterministicPick(MENU_SALES, SESSION_KEYS.menuTease),
+    []
+  );
+
   function openLogin() {
-    setPitchIdx(Math.floor(Math.random() * LOGIN_PITCHES.length));
+    setLoginPitchOffset(0);
     setLoginOpen(true);
   }
-// ✅ PUNKT 6: helpers til fight ticker (legg disse her)
-function fightIconFor(text?: string) {
-  const t = (text ?? "").trim();
-  if (t.startsWith("🧾")) return Receipt;
-  if (t.startsWith("⚡")) return Zap;
-  if (t.startsWith("📣")) return Megaphone;
-  // fallback
-  return Megaphone;
-}
 
-function stripLeadEmoji(text?: string) {
-  if (!text) return "";
-  return text.replace(
-    /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u,
-    "",
-  );
-}
+  function nextLoginPitch() {
+    setLoginPitchOffset((prev) => prev + 1);
+  }
+
+  function submitSearch(value: string) {
+    const q = value.trim();
+    if (!q) return;
+    window.location.href = `/butikk?q=${encodeURIComponent(q)}`;
+  }
+
   return (
     <div className="sticky top-0 z-[55]">
-      {/* TOPBAR over navbar (fight) */}
-      <div className="bg-yellow-300 text-black border-b border-black/10">
-        <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs font-black truncate inline-flex items-center gap-2">
-  <Icon icon={fightIconFor(fight[0]?.text)} tone="strong" />
-  {stripLeadEmoji(fight[0]?.text)}
-</div>
-<div className="text-[11px] font-semibold opacity-70 truncate inline-flex items-center gap-2">
-  <Icon icon={fightIconFor(fight[1]?.text)} tone="muted" />
-  {stripLeadEmoji(fight[1]?.text)}
-</div>
+      <NavFightBar fight={fight} />
 
-          </div>
-
-          <a
-            href="/kampanjer"
-            className="shrink-0 rounded bg-red-600 text-white px-2.5 py-1 text-xs font-black hover:opacity-90"
-          >
-            KAMPANJER →
-          </a>
-        </div>
-      </div>
-
-      <header className="bg-white text-black border-b border-black/10">
-        {/* Main row */}
-        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2">
-          {/* baconburger (mobile) */}
+      <header className="border-b border-black/10 bg-white text-black">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
           <button
             onClick={() => setMenuOpen(true)}
-            className="md:hidden rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5"
+            className="rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5 md:hidden"
             aria-label="Åpne meny"
             title="Meny"
           >
-            <Icon icon={Menu} className="opacity-70" />
+            <Icon icon={Menu} intent="noted" />
           </button>
 
-          {/* logo */}
-          <a href="/" className="flex items-center gap-2 shrink-0 group">
-            
-            <div className="leading-tight hidden sm:block">
+          <a href="/" className="group flex shrink-0 items-center gap-2">
+            <div className="hidden leading-tight sm:block">
               <img src="/logo.svg" alt="Prishandel" className="h-8" />
-
-              <div className="text-[11px] opacity-70 -mt-0.5">Alltid kampanje • Alltid utsolgt</div>
+              <div className="-mt-0.5 text-[11px] opacity-70">
+                Alltid kampanje • Alltid utsolgt
+              </div>
             </div>
           </a>
 
-          {/* search */}
-<div ref={navWrapRef} className="flex-1 relative">
-  <input
-    value={navQ}
-    onChange={(e) => {
-      setNavQ(e.target.value);
-      setNavSuggestOpen(true);
-    }}
-    onFocus={() => setNavSuggestOpen(true)}
-    className="w-full rounded-lg border border-black/15 bg-white pl-3 pr-16 py-2 text-sm font-semibold placeholder:opacity-60"
-    placeholder="Søk i butikken…"
-  />
+          <NavSearch
+            ref={navWrapRef}
+            value={navQ}
+            onChange={setNavQ}
+            suggestOpen={navSuggestOpen}
+            setSuggestOpen={setNavSuggestOpen}
+            suggestions={navSuggestions}
+            onPick={(s) => {
+              setNavQ(s);
+              setNavSuggestOpen(false);
+              submitSearch(s);
+            }}
+            onSubmit={() => submitSearch(navQ)}
+          />
 
-  <div className="absolute right-2 top-1.5 flex items-center gap-2">
-    <span className="text-[10px] font-black rounded bg-yellow-300 px-2 py-0.5 border border-black/10">
-      -90%*
-    </span>
-  </div>
-
-  {navSuggestOpen && navSuggestions.length > 0 && (
-    <div className="absolute left-0 right-0 mt-2 rounded-xl border border-black/10 bg-white shadow-sm overflow-hidden z-[80]">
-      {navSuggestions.map((s) => (
-        <button
-          key={s}
-          type="button"
-          onClick={() => {
-            setNavQ(s);
-            setNavSuggestOpen(false);
-
-            // Valgfritt (hvis du vil): send til butikk med query
-            // window.location.href = `/butikk?q=${encodeURIComponent(s)}`;
-          }}
-          className="block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-black/5"
-        >
-          {s}
-        </button>
-      ))}
-      <div className="px-4 py-2 text-[11px] font-semibold opacity-50 border-t border-black/10">
-        Forslag generert av systemet
-      </div>
-    </div>
-  )}
-</div>
-
-
-          {/* actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={openLogin}
-              className="hidden sm:inline-flex rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5"
+              className="hidden rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5 sm:inline-flex"
               title="Logg inn"
             >
               Logg inn
             </button>
 
-           <CartNavItem />
+            <CartNavItem />
           </div>
         </div>
 
-        {/* category chips */}
-        <div className="bg-neutral-50 border-t border-black/10">
-          <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto">
+        <NavCategories />
+      </header>
+
+      <MobileMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenLogin={() => {
+          setMenuOpen(false);
+          openLogin();
+        }}
+        menuTease={menuTease}
+      />
+
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onNextPitch={nextLoginPitch}
+        pitch={loginPitch}
+      />
+    </div>
+  );
+}
+
+function NavFightBar(props: { fight: FightItem[] }) {
+  const first = props.fight[0] ?? { text: "📣 Marked: Alltid kampanje." };
+  const second = props.fight[1] ?? { text: "🧾 Regnskap: Alltid bekymret." };
+
+  return (
+    <div className="border-b border-black/10 bg-yellow-300 text-black">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1.5">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-2 truncate text-xs font-black">
+            <Icon icon={fightIconFor(first.text)} intent="active" />
+            {stripLeadEmoji(first.text)}
+          </div>
+          <div className="inline-flex items-center gap-2 truncate text-[11px] font-semibold opacity-70">
+            <Icon icon={fightIconFor(second.text)} intent="passive" />
+            {stripLeadEmoji(second.text)}
+          </div>
+        </div>
+
+        <a
+          href="/kampanjer"
+          className="shrink-0 rounded bg-red-600 px-2.5 py-1 text-xs font-black text-white hover:opacity-90"
+        >
+          KAMPANJER →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+const NavSearch = forwardRef<
+  HTMLDivElement,
+  {
+    value: string;
+    onChange: (value: string) => void;
+    suggestOpen: boolean;
+    setSuggestOpen: (open: boolean) => void;
+    suggestions: string[];
+    onPick: (value: string) => void;
+    onSubmit: () => void;
+  }
+>(function NavSearch(
+  { value, onChange, suggestOpen, setSuggestOpen, suggestions, onPick, onSubmit },
+  ref
+) {
+  function onKeyDown(e: ReactKeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setSuggestOpen(false);
+      onSubmit();
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative flex-1">
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setSuggestOpen(true);
+        }}
+        onFocus={() => setSuggestOpen(true)}
+        onKeyDown={onKeyDown}
+        className="w-full rounded-lg border border-black/15 bg-white py-2 pl-3 pr-16 text-sm font-semibold placeholder:opacity-60"
+        placeholder="Søk i butikken…"
+      />
+
+      <div className="absolute right-2 top-1.5 flex items-center gap-2">
+        <span className="rounded border border-black/10 bg-yellow-300 px-2 py-0.5 text-[10px] font-black">
+          -90%*
+        </span>
+      </div>
+
+      {suggestOpen && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 z-[80] mt-2 overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onPick(s)}
+              className="block w-full px-4 py-2 text-left text-sm font-semibold hover:bg-black/5"
+            >
+              {s}
+            </button>
+          ))}
+          <div className="border-t border-black/10 px-4 py-2 text-[11px] font-semibold opacity-50">
+            Forslag generert av systemet
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+function NavCategories() {
+  return (
+    <div className="border-t border-black/10 bg-neutral-50">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-2">
+        {CATS.map((c) => (
+          <a
+            key={c.href}
+            href={c.href}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm font-black hover:bg-black/5"
+          >
+            <span>{c.label}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${c.pill}`}
+            >
+              {c.pillText}
+            </span>
+          </a>
+        ))}
+
+        <div className="ml-auto hidden items-center gap-2 text-xs font-semibold opacity-80 md:flex">
+          <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
+            <Icon icon={Truck} intent="passive" />
+            Gratis frakt*
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
+            <Icon icon={CreditCard} intent="passive" />
+            Vipps/Klarna*
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
+            <Icon icon={Receipt} intent="passive" />
+            Prisgaranti*
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileMenuDrawer(props: {
+  open: boolean;
+  onClose: () => void;
+  onOpenLogin: () => void;
+  menuTease: string;
+}) {
+  if (!props.open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80]">
+      <button
+        className="absolute inset-0 bg-black/40"
+        onClick={props.onClose}
+        aria-label="Lukk meny"
+      />
+
+      <aside className="absolute left-0 top-0 h-full w-[320px] max-w-[86vw] border-r border-black/10 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-black/10 px-4 py-4">
+          <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-red-600 font-black text-white">
+              P
+            </div>
+            <div className="leading-tight">
+              <div className="font-black">Meny</div>
+              <div className="text-[11px] opacity-70">Baconburger-utgave</div>
+            </div>
+          </div>
+
+          <button
+            onClick={props.onClose}
+            className="rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5"
+          >
+            Lukk
+          </button>
+        </div>
+
+        <div className="space-y-3 px-4 py-4">
+          <div className="rounded-xl border border-black/10 bg-yellow-300 p-4">
+            <div className="inline-block rounded bg-black px-2 py-1 text-xs font-black text-yellow-300">
+              KAMPANJE
+            </div>
+            <div className="mt-2 font-black">{props.menuTease}</div>
+            <div className="mt-1 text-xs font-semibold opacity-80">
+              Slutter snart* • låst per økt
+            </div>
+            <div className="mt-3 flex gap-2">
+              <a
+                href="/kampanjer"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-black text-white hover:opacity-90"
+                onClick={props.onClose}
+              >
+                Se kampanjer →
+              </a>
+              <a
+                href="/butikk"
+                className="rounded-lg border border-black/20 bg-white px-4 py-2 text-sm font-black text-black hover:bg-black/5"
+                onClick={props.onClose}
+              >
+                Produkter
+              </a>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             {CATS.map((c) => (
               <a
                 key={c.href}
                 href={c.href}
-                className="shrink-0 inline-flex items-center gap-2 rounded-full bg-white border border-black/10 px-3 py-1.5 text-sm font-black hover:bg-black/5"
+                onClick={props.onClose}
+                className="flex items-center justify-between rounded-xl border border-black/10 bg-white px-4 py-3 font-black hover:bg-black/5"
               >
                 <span>{c.label}</span>
-                <span className={`text-[10px] rounded-full px-2 py-0.5 font-black ${c.pill}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black ${c.pill}`}
+                >
                   {c.pillText}
                 </span>
               </a>
             ))}
+          </div>
 
-            <div className="shrink-0 ml-auto hidden md:flex items-center gap-2 text-xs font-semibold opacity-80">
-              <span className="rounded bg-white border border-black/10 px-2 py-1 inline-flex items-center gap-1.5">
-  <Icon icon={Truck} />
-  Gratis frakt*
-</span>
-<span className="rounded bg-white border border-black/10 px-2 py-1 inline-flex items-center gap-1.5">
-  <Icon icon={CreditCard} />
-  Vipps/Klarna*
-</span>
-<span className="rounded bg-white border border-black/10 px-2 py-1 inline-flex items-center gap-1.5">
-  <Icon icon={Receipt} />
-  Prisgaranti*
-</span>
+          <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
+            <div className="font-black">Konto</div>
+            <p className="mt-1 text-sm opacity-80">
+              Innlogging er midlertidig utsolgt, men vi kan late som.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={props.onOpenLogin}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-black text-white hover:opacity-90"
+              >
+                Logg inn
+              </button>
+              <a
+                href="/utsolgt"
+                onClick={props.onClose}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-black text-white hover:opacity-90"
+              >
+                Kurv (0)
+              </a>
+            </div>
+            <div className="mt-2 text-xs opacity-60">
+              *konto kan avvike fra virkeligheten.
             </div>
           </div>
+
+          <div className="flex flex-col gap-1 text-xs opacity-60">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon icon={Truck} intent="passive" /> Gratis frakt*
+              </span>
+              <span className="opacity-60">•</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Icon icon={CreditCard} intent="passive" /> Vipps/Klarna*
+              </span>
+              <span className="opacity-60">•</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Icon icon={Receipt} intent="passive" /> Prisgaranti*
+              </span>
+            </div>
+            <div>*gjelder der det passer oss</div>
+          </div>
         </div>
-      </header>
+      </aside>
+    </div>
+  );
+}
 
-      {/* Mobile menu drawer */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-[80]">
-          <button
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMenuOpen(false)}
-            aria-label="Lukk meny"
-          />
+function LoginModal(props: {
+  open: boolean;
+  onClose: () => void;
+  onNextPitch: () => void;
+  pitch: (typeof LOGIN_PITCHES)[number];
+}) {
+  if (!props.open) return null;
 
-          <aside className="absolute left-0 top-0 h-full w-[320px] max-w-[86vw] bg-white border-r border-black/10 shadow-2xl">
-            <div className="px-4 py-4 border-b border-black/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-lg bg-red-600 text-white grid place-items-center font-black">
-                  P
-                </div>
-                <div className="leading-tight">
-                  <div className="font-black">Meny</div>
-                  <div className="text-[11px] opacity-70">Baconburger-utgave</div>
-                </div>
-              </div>
+  return (
+    <div className="fixed inset-0 z-[90] grid place-items-center p-4">
+      <button
+        className="absolute inset-0 bg-black/40"
+        onClick={props.onClose}
+        aria-label="Lukk"
+      />
+
+      <div className="relative w-[520px] max-w-[96vw] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
+        <div className="flex items-center justify-between gap-3 bg-red-600 px-5 py-4 text-white">
+          <div>
+            <div className="font-black leading-tight">Logg inn</div>
+            <div className="text-xs opacity-90">
+              Autentisering: midlertidig utsolgt
+            </div>
+          </div>
+          <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">
+            {props.pitch.badge}
+          </span>
+        </div>
+
+        <div className="space-y-4 p-5">
+          <div>
+            <div className="text-xl font-black">{props.pitch.title}</div>
+            <div className="mt-1 text-sm opacity-80">{props.pitch.body}</div>
+          </div>
+
+          <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
+            <div className="text-sm font-black">Innlogging (demo)</div>
+            <div className="mt-3 grid gap-2">
+              <input
+                disabled
+                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm opacity-60"
+                placeholder="E-post"
+              />
+              <input
+                disabled
+                className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm opacity-60"
+                placeholder="Passord"
+              />
               <button
-                onClick={() => setMenuOpen(false)}
-                className="rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5"
+                disabled
+                className="cursor-not-allowed rounded-lg bg-black py-3 font-black text-white opacity-40"
               >
-                Lukk
+                LOGG INN (UTSOLGT)
               </button>
             </div>
-
-            <div className="px-4 py-4 space-y-3">
-              <div className="rounded-xl bg-yellow-300 border border-black/10 p-4">
-                <div className="text-xs font-black rounded bg-black text-yellow-300 px-2 py-1 inline-block">
-                  KAMPANJE
-                </div>
-                <div className="mt-2 font-black">{menuTease}</div>
-                <div className="mt-1 text-xs font-semibold opacity-80">
-                  Slutter snart* • resettes ved refresh
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <a
-                    href="/kampanjer"
-                    className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-black hover:opacity-90"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Se kampanjer →
-                  </a>
-                  <a
-                    href="/butikk"
-                    className="rounded-lg bg-white text-black px-4 py-2 text-sm font-black border border-black/20 hover:bg-black/5"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Produkter
-                  </a>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {CATS.map((c) => (
-                  <a
-                    key={c.href}
-                    href={c.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between rounded-xl bg-white border border-black/10 px-4 py-3 font-black hover:bg-black/5"
-                  >
-                    <span>{c.label}</span>
-                    <span className={`text-[10px] rounded-full px-2 py-0.5 font-black ${c.pill}`}>
-                      {c.pillText}
-                    </span>
-                  </a>
-                ))}
-              </div>
-
-              <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
-                <div className="font-black">Konto</div>
-                <p className="mt-1 text-sm opacity-80">
-                  Innlogging er midlertidig utsolgt, men vi kan late som.
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      openLogin();
-                    }}
-                    className="rounded-lg bg-black text-white px-4 py-2 text-sm font-black hover:opacity-90"
-                  >
-                    Logg inn
-                  </button>
-                  <a
-                    href="/utsolgt"
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-lg bg-green-600 text-white px-4 py-2 text-sm font-black hover:opacity-90"
-                  >
-                    Kurv (0)
-                  </a>
-                </div>
-                <div className="mt-2 text-xs opacity-60">
-                  *konto kan avvike fra virkeligheten.
-                </div>
-              </div>
-
-             <div className="text-xs opacity-60 flex flex-col gap-1">
-  <div className="flex flex-wrap items-center gap-2">
-    <span className="inline-flex items-center gap-1.5">
-      <Icon icon={Truck} /> Gratis frakt*
-    </span>
-    <span className="opacity-60">•</span>
-    <span className="inline-flex items-center gap-1.5">
-      <Icon icon={CreditCard} /> Vipps/Klarna*
-    </span>
-    <span className="opacity-60">•</span>
-    <span className="inline-flex items-center gap-1.5">
-      <Icon icon={Receipt} /> Prisgaranti*
-    </span>
-  </div>
-  <div>*gjelder der det passer oss</div>
-</div>
-
-            </div>
-          </aside>
-        </div>
-      )}
-
-      {/* Login modal */}
-      {loginOpen && (
-        <div className="fixed inset-0 z-[90] grid place-items-center p-4">
-          <button className="absolute inset-0 bg-black/40" onClick={() => setLoginOpen(false)} aria-label="Lukk" />
-          <div className="relative w-[520px] max-w-[96vw] rounded-2xl bg-white border border-black/10 shadow-2xl overflow-hidden">
-            <div className="bg-red-600 text-white px-5 py-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="font-black leading-tight">Logg inn</div>
-                <div className="text-xs opacity-90">Autentisering: midlertidig utsolgt</div>
-              </div>
-              <span className="text-xs font-black rounded bg-white/15 px-2 py-1">{pitch.badge}</span>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div>
-                <div className="text-xl font-black">{pitch.title}</div>
-                <div className="mt-1 text-sm opacity-80">{pitch.body}</div>
-              </div>
-
-              <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
-                <div className="text-sm font-black">Innlogging (demo)</div>
-                <div className="mt-3 grid gap-2">
-                  <input disabled className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm opacity-60" placeholder="E-post" />
-                  <input disabled className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm opacity-60" placeholder="Passord" />
-                  <button disabled className="rounded-lg bg-black text-white py-3 font-black opacity-40 cursor-not-allowed">
-                    LOGG INN (UTSOLGT)
-                  </button>
-                </div>
-                <div className="mt-2 text-xs opacity-60">Ved å logge inn godtar du at alt kan være utsolgt.</div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 items-center">
-                <a href={pitch.href} className="rounded-lg bg-red-600 text-white px-5 py-3 font-black hover:opacity-90">
-                  {pitch.cta}
-                </a>
-                <button
-                  onClick={() => setPitchIdx((i) => (i + 1) % LOGIN_PITCHES.length)}
-                  className="rounded-lg bg-white text-black px-5 py-3 font-black border border-black/20 hover:bg-black/5"
-                >
-                  Ny forklaring
-                </button>
-                <button
-                  onClick={() => setLoginOpen(false)}
-                  className="rounded-lg bg-white text-black px-5 py-3 font-black border border-black/20 hover:bg-black/5"
-                >
-                  Lukk
-                </button>
-              </div>
-
-              <div className="text-xs opacity-60">*Innlogging kan avvike fra virkeligheten.</div>
+            <div className="mt-2 text-xs opacity-60">
+              Ved å logge inn godtar du at alt kan være utsolgt.
             </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={props.pitch.href}
+              className="rounded-lg bg-red-600 px-5 py-3 font-black text-white hover:opacity-90"
+            >
+              {props.pitch.cta}
+            </a>
+            <button
+              onClick={props.onNextPitch}
+              className="rounded-lg border border-black/20 bg-white px-5 py-3 font-black text-black hover:bg-black/5"
+            >
+              Ny forklaring
+            </button>
+            <button
+              onClick={props.onClose}
+              className="rounded-lg border border-black/20 bg-white px-5 py-3 font-black text-black hover:bg-black/5"
+            >
+              Lukk
+            </button>
+          </div>
+
+          <div className="text-xs opacity-60">
+            *Innlogging kan avvike fra virkeligheten.
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

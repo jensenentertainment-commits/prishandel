@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { RECOMMENDED } from "../lib/products";
 import ProductImage from "./ProductImage";
 
@@ -5,52 +6,65 @@ export default function CustomersAlsoBought(props: { excludeSlug?: string }) {
   const items = RECOMMENDED.filter((p) => p.slug !== props.excludeSlug).slice(0, 4);
 
   return (
-    <section className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-      <div className="flex items-end justify-between gap-4">
+    <section className="rounded-2xl border border-black/12 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="text-xl font-black">Kunder kjøpte også</div>
-          <div className="text-sm opacity-70">
+          <h2 className="text-2xl font-black tracking-tight">Kunder kjøpte også</h2>
+          <p className="mt-1 text-sm opacity-70">
             Basert på kjøp vi antar skjedde.
-          </div>
+          </p>
         </div>
-        <a href="/kampanjer" className="text-sm font-black underline decoration-2">
+
+        <Link
+          href="/kampanjer"
+          className="text-sm font-black underline decoration-2"
+        >
           Se flere “anbefalinger” →
-        </a>
+        </Link>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
         {items.map((p) => (
-          <a
+          <Link
             key={p.slug}
             href={`/produkt/${p.slug}`}
-            className="rounded-2xl border border-black/10 bg-neutral-50 hover:bg-white hover:shadow-sm transition overflow-hidden"
+            className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/12 bg-[#f7f4ea] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
           >
-    <div className="h-28 border-b border-black/10 bg-white p-3 overflow-hidden flex items-center justify-center">
-  <ProductImage slug={p.slug} title={p.title} />
-</div>
-<div className="text-[10px] opacity-50 mt-1">
-  Leverandør jobber med saken
-</div>
+            <div className="relative border-b border-black/10 bg-white p-4">
+              <span className="absolute left-3 top-3 rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-300">
+                Anbefalt
+              </span>
 
-            <div className="p-4">
-              <div className="text-xs font-black rounded bg-yellow-300 px-2 py-1 inline-block">
+              <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
                 {p.badge}
-              </div>
-              <div className="mt-2 font-black">{p.title}</div>
-              <div className="mt-1 text-xs opacity-70">Lagerstatus: 0</div>
+              </span>
 
-              <div className="mt-2 flex items-baseline justify-between">
-                <div className="text-sm line-through opacity-50">{p.before},-</div>
-                <div className="text-lg font-black text-red-600">{p.now},-</div>
+              <div className="flex h-40 items-center justify-center">
+                <ProductImage slug={p.slug} title={p.title} />
               </div>
-
-              <div className="mt-3 rounded-lg bg-black text-white text-center py-2 text-sm font-black opacity-40">
-                LEGG I KURV (UTSOLGT)
-              </div>
-
-              <div className="mt-2 text-xs opacity-70">{p.note}</div>
             </div>
-          </a>
+
+            <div className="min-h-[124px]">
+  <h3 className="text-xl font-black leading-tight">{p.title}</h3>
+  <p className="mt-2 line-clamp-2 text-sm opacity-75">{p.short}</p>
+</div>
+
+<div className="mt-4 flex items-end justify-between gap-3">
+  <div className="text-xs opacity-60 line-through">{p.before},-</div>
+  <div className="text-2xl font-black text-red-600">{p.now},-</div>
+</div>
+
+<div className="mt-3 text-sm font-semibold opacity-75">
+  Lagerstatus: 0
+</div>
+
+<div className="mt-auto pt-4">
+  <div className="rounded-xl bg-black px-4 py-3 text-center text-sm font-black text-yellow-300 transition group-hover:opacity-90">
+    Se produkt →
+  </div>
+
+            </div>
+          </Link>
         ))}
       </div>
 

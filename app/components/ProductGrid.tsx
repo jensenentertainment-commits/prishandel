@@ -1,18 +1,17 @@
 "use client";
 
-import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
+import { useMemo } from "react";
+import { ShoppingCart, Receipt } from "lucide-react";
 import { Icon } from "./Icon";
-import { Receipt, Megaphone } from "lucide-react";
-import { useMemo, useState } from "react";
 import { PRODUCTS, getLeaks, type Product } from "../lib/products";
 import { useCart } from "./cart/CartProvider";
-import Link from "next/link";
 
-/* ---------- helpers ---------- */
-
-function cn(...v: Array<string | false | null | undefined>) {
-  return v.filter(Boolean).join(" ");
-}
+type ProductGridProps = {
+  limit?: number;
+  title?: string;
+  subtitle?: string;
+};
 
 function hashString(str: string) {
   let h = 0;
@@ -23,30 +22,16 @@ function hashString(str: string) {
 function prng(seed: number) {
   let x = seed || 1;
   return () => {
-    x = Math.imul(48271, x) % 0x7fffffff;
-    return x / 0x7fffffff;
+    x = (x * 16807) % 2147483647;
+    return (x - 1) / 2147483646;
   };
 }
 
 function pickSeed(extra = "") {
   const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 61)); // egen rytme
-  const env =
-    typeof window !== "undefined"
-      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
-      : "server";
-  return hashString(`${cycle}|${env}|${extra}`);
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 61));
+  return hashString(`${cycle}|${extra}`);
 }
-
-/* ---------- språkvarianter ---------- */
-
-const CTA_VARIANTS = [
-  "Kjøp nå →",
-  "Fortsett →",
-  "Gå videre →",
-  "Fullfør kjøp →",
-  "Bekreft valg →",
-];
 
 const ACCOUNTING_VARIANTS = [
   "Pris er godkjent for visning.",
@@ -54,193 +39,155 @@ const ACCOUNTING_VARIANTS = [
   "Tall er registrert.",
   "Beregning er gjennomført.",
   "Regnskap er orientert.",
-];
+] as const;
 
-const FOOTER_VARIANTS = [
-  "📣 Marked: “Dette haster.” • 🧾 Regnskap: “Dette er notert.”",
-  "📣 Marked: “Siste sjanse.” • 🧾 Regnskap: “Ikke bekreftet.”",
-  "📣 Marked: “Folk kjøper dette.” • 🧾 Regnskap: “Tall foreligger.”",
-  "📣 Marked: “Dette er populært.” • 🧾 Regnskap: “Avvik kan forekomme.”",
-];
-
-/* ---------- grid ---------- */
-
-export default function ProductGrid(props: {
-  title?: string;
-  subtitle?: string;
-  limit?: number;
-}) {
-  const [q, setQ] = useState("");
-
+export default function ProductGrid({
+  limit,
+  title,
+  subtitle,
+}: ProductGridProps) {
   const items = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    let list = PRODUCTS.filter((p) => {
-      if (!query) return true;
-      return (
-        p.title.toLowerCase().includes(query) ||
-        p.short.toLowerCase().includes(query) ||
-        p.note.toLowerCase().includes(query)
-      );
-    });
-
-    if (props.limit) list = list.slice(0, props.limit);
+    let list = [...PRODUCTS];
+    if (limit) list = list.slice(0, limit);
     return list;
-  }, [q, props.limit]);
+  }, [limit]);
 
   return (
-    <section className="max-w-6xl mx-auto px-4 py-10">
-      {/* header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-3xl font-black tracking-tight">
-            {props.title ?? "Utvalgte varer"}
-          </h2>
-          <p className="mt-2 text-sm opacity-80 max-w-2xl">
-            {props.subtitle ??
-              "Alle varer er kraftig rabattert og utilgjengelige."}
-          </p>
+    <section className="mx-auto max-w-6xl px-4 pb-10">
+      {(title || subtitle) && (
+        <div className="mb-6">
+          {title && <h1 className="text-3xl font-black">{title}</h1>}
+          {subtitle && <p className="mt-2 text-sm opacity-70">{subtitle}</p>}
         </div>
+      )}
 
-        <div className="flex gap-2">
-          <a
-            href="/kampanjer"
-            className="rounded-xl bg-red-600 text-white px-4 py-2 font-black hover:opacity-90"
-          >
-            Se kampanjer →
-          </a>
-          <Link href="/lager" className="text-sm font-black underline">
-            Intern lagerstatus
-          </Link>
-        </div>
-      </div>
-
-      {/* søk */}
-      <div className="mt-6">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Søk i butikken…"
-          className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-sm font-semibold placeholder:opacity-60"
-        />
-      </div>
-
-      {/* grid */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((p) => (
           <ProductCard key={p.slug} p={p} />
         ))}
 
         {items.length === 0 && (
-          <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-black/10 bg-white p-6">
-            <div className="text-lg font-black">Ingen treff</div>
-            <div className="mt-1 text-sm opacity-80 space-y-1">
-              <div className="inline-flex items-center gap-2">
-                <Icon icon={Megaphone} />
-                Markedsavdelingen: prøv “tilbud”.
-              </div>
-              <div className="inline-flex items-center gap-2 opacity-70">
-                <Icon icon={Receipt} />
-                Regnskap: notert.
-              </div>
+          <div className="rounded-2xl border border-black/12 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-3">
+            <div className="text-lg font-black">Ingen varer tilgjengelig</div>
+            <div className="mt-3 space-y-2 text-sm opacity-80">
+              <div>Markedsavdelingen anbefaler fortsatt optimisme.</div>
+              <div className="opacity-70">Regnskap har notert situasjonen.</div>
             </div>
           </div>
         )}
       </div>
 
       <div className="mt-6 text-xs opacity-60">
-        *Rabatter gjelder kun i teorien.
+        Rabatter gjelder kun i teorien. Handlekraft vurderes separat.
       </div>
     </section>
   );
 }
 
-/* ---------- product card ---------- */
-
 function ProductCard({ p }: { p: Product }) {
   const { add, state } = useCart();
-
   const inCartQty = state.lines.find((l) => l.slug === p.slug)?.qty ?? 0;
 
   const seed = pickSeed(p.slug);
   const rnd = prng(seed);
 
-  const ctaText = CTA_VARIANTS[Math.floor(rnd() * CTA_VARIANTS.length)];
+  const accountingIndex = Math.max(
+    0,
+    Math.min(
+      ACCOUNTING_VARIANTS.length - 1,
+      Math.floor(rnd() * ACCOUNTING_VARIANTS.length)
+    )
+  );
+
   const accountingText =
-    ACCOUNTING_VARIANTS[Math.floor(rnd() * ACCOUNTING_VARIANTS.length)];
-  const footerText =
-    FOOTER_VARIANTS[Math.floor(rnd() * FOOTER_VARIANTS.length)];
+    ACCOUNTING_VARIANTS[accountingIndex] ?? "Tall er registrert.";
+
+  const discount = Math.max(
+    10,
+    Math.min(97, Math.round(((p.before - p.now) / p.before) * 100))
+  );
 
   return (
-    <article className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-      {/* bilde */}
-      <div className="h-40 bg-neutral-50 border-b border-black/10 p-4 flex items-end justify-between overflow-hidden">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/12 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="relative flex h-56 items-end justify-between overflow-hidden border-b border-black/10 bg-[#f7f4ea] p-4 md:h-64">
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-300">
+          Kampanje
+        </span>
+
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+          -{discount}%
+        </span>
+
         <img
           src={`/products/${p.slug}.svg`}
           alt={p.title}
-          className="h-full w-full object-contain"
+          className="relative z-0 h-full w-full scale-110 object-contain"
         />
       </div>
 
-      <div className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <div className="flex min-h-[132px] items-start justify-between gap-3">
           <div>
-            <h3 className="text-xl font-black">{p.title}</h3>
-            <p className="mt-1 text-sm opacity-80">{p.short}</p>
+            <h3 className="text-[1.75rem] font-black leading-[1] tracking-tight">
+              {p.title}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed opacity-80">{p.short}</p>
           </div>
 
-          <div className="text-right shrink-0">
-            <div className="text-lg font-black">{p.now},-</div>
-            <div className="text-[11px] opacity-60 line-through">
+          <div className="shrink-0 text-right">
+            <div className="text-2xl font-black leading-none">{p.now},-</div>
+            <div className="mt-1 text-[12px] line-through opacity-60">
               {p.before},-
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl bg-neutral-50 border border-black/10 p-3">
-          <div className="text-xs font-black inline-flex items-center gap-2">
+        <div className="min-h-[88px] rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
+          <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide">
             <Icon icon={Receipt} />
             Regnskap
           </div>
           <div className="mt-1 text-sm opacity-80">{accountingText}</div>
         </div>
 
-        <div className="flex gap-2">
-          <a
-            href={`/produkt/${p.slug}`}
-            className="flex-1 text-center rounded-xl bg-red-600 text-white px-4 py-3 font-black hover:opacity-90"
-          >
-            {ctaText}
-          </a>
+        <div className="mt-auto space-y-3">
+          <div className="flex items-stretch gap-2">
+            <Link
+              href={`/produkt/${p.slug}`}
+              className="flex min-h-[56px] flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-4 text-center text-sm font-black tracking-wide text-white transition hover:opacity-90"
+            >
+              <span>Se produkt →</span>
+            </Link>
 
-          <button
-            type="button"
-            onClick={() => add(p.slug, 1)}
-            className="relative rounded-xl bg-white text-black px-4 py-3 font-black border border-black/20 hover:bg-black/5 inline-flex items-center justify-center"
-            title={inCartQty > 0 ? `I kurv (${inCartQty})` : "Legg i handlekurv"}
-          >
-            <Icon icon={ShoppingCart} />
-            {inCartQty > 0 && (
-              <span className="absolute -top-2 -right-2 rounded-full bg-red-600 text-white text-[11px] font-black px-2 py-0.5 tabular-nums">
-                {inCartQty}
-              </span>
-            )}
-         д
-          </button>
+            <button
+              type="button"
+              onClick={() => add(p.slug, 1)}
+              className="relative inline-flex min-h-[56px] items-center justify-center rounded-xl border border-black/20 bg-white px-4 py-4 font-black text-black transition hover:bg-black/5"
+              title={inCartQty > 0 ? `I kurv (${inCartQty})` : "Legg i handlekurv"}
+            >
+              <Icon icon={ShoppingCart} />
+              {inCartQty > 0 && (
+                <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-black tabular-nums text-white">
+                  {inCartQty}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-black/10 bg-[#f7f4ea] p-3">
+            <div className="text-[11px] font-black uppercase tracking-wide opacity-70">
+              Systemnotater
+            </div>
+            <ul className="mt-2 space-y-1 text-[12px] font-semibold">
+              {getLeaks(p.slug, 2).map((line) => (
+                <li key={line}>
+                  <span className="opacity-60">•</span>{" "}
+                  <span className="opacity-80">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-
-        <div className="rounded-xl bg-neutral-50 border border-black/10 p-3">
-          <div className="text-[11px] font-black opacity-70">Systemnotater</div>
-          <ul className="mt-2 space-y-1 text-[12px] font-semibold">
-            {getLeaks(p.slug, 2).map((line) => (
-              <li key={line} className="truncate">
-                <span className="opacity-60">•</span>{" "}
-                <span className="opacity-80">{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="text-[11px] opacity-60">{footerText}</div>
       </div>
     </article>
   );

@@ -1,32 +1,120 @@
 "use client";
 
-type HeroVariant = {
+import { useEffect, useMemo, useState } from "react";
+
+type Accent = "yellow" | "red" | "black";
+
+type HeroItem = {
+  accent: Accent;
   kickerTag: string;
-  kickerTail: string; // uten tall
-  h1: string;
-  lead: string;
+  kickerTail: string;
+  title: string;
+  body: string;
+  highlight: string;
   footnote: string;
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref: string;
+  secondaryLabel: string;
+  statusLabel: string;
+  statusNote: string;
+  metrics: {
+    pressure: [number, number];
+    integrity: [number, number];
+    availability: [number, number];
+  };
+  viewers: [number, number];
+  codePrefix: string;
 };
 
-type CtaVariant = {
-  primary: string;
-  secondary: string;
-  note: string;
-};
+const HEROES: HeroItem[] = [
+  {
+    accent: "yellow",
+    kickerTag: "KAMPANJEDRIFT",
+    kickerTail: "personer følger prispress uten medvirkning akkurat nå*",
+    title: "Alt er på tilbud. Ingenting er tilgjengelig.",
+    body: "Kontinuerlig prispress. Aggressive kampanjer. Null lager.",
+    highlight: "Alt må vekk.",
+    footnote: "*Medvirkning kan være registrert uten å ha funnet sted.",
+    primaryHref: "/butikk",
+    primaryLabel: "SE VARER",
+    secondaryHref: "/kampanjer",
+    secondaryLabel: "GÅ TIL KAMPANJE",
+    statusLabel: "Operativ kampanje",
+    statusNote: "Prisflaten er aktiv. Tilgjengelighet vurderes separat.",
+    metrics: {
+      pressure: [74, 93],
+      integrity: [81, 92],
+      availability: [3, 18],
+    },
+    viewers: [8, 27],
+    codePrefix: "K-LIVE",
+  },
+  {
+    accent: "black",
+    kickerTag: "LAGERMELDING",
+    kickerTail: "personer vurderer “snart på lager” som informasjon akkurat nå*",
+    title: "Snart på lager. Tomme løfter.",
+    body: "Vi jobber hardt med å skaffe varer vi ikke har klart å stå inne for.",
+    highlight: "Takk for tålmodigheten.",
+    footnote: "*Informasjon kan opprettholdes selv når grunnlaget er svakt.",
+    primaryHref: "/butikk",
+    primaryLabel: "SE UTVALG",
+    secondaryHref: "/utsolgt",
+    secondaryLabel: "VIS TILGJENGELIGHET",
+    statusLabel: "Forsyning under formulering",
+    statusNote: "Lagerfølelse er opprettholdt uten å binde seg til varer.",
+    metrics: {
+      pressure: [52, 71],
+      integrity: [84, 96],
+      availability: [0, 9],
+    },
+    viewers: [5, 18],
+    codePrefix: "L-STOCK",
+  },
+  {
+    accent: "red",
+    kickerTag: "REGNSKAP",
+    kickerTail: "personer observerer marginarbeid uten innsyn akkurat nå*",
+    title: "Prisene er satt lavt nok til å skape intern uro.",
+    body: "Vi kaller det kampanje. Regnskap kaller det en pågående vurdering.",
+    highlight: "Begge anses som gyldige.",
+    footnote: "*Innsyn kan være begrenset av hensyn til flyt, tempo og stemning.",
+    primaryHref: "/kampanjer",
+    primaryLabel: "SE PRISENE",
+    secondaryHref: "/butikk",
+    secondaryLabel: "VURDER VARER",
+    statusLabel: "Margintrykk registrert",
+    statusNote: "Prisnivået er opprettholdt. Begrunnelsen arbeides det med.",
+    metrics: {
+      pressure: [81, 97],
+      integrity: [72, 86],
+      availability: [7, 22],
+    },
+    viewers: [6, 21],
+    codePrefix: "R-MRGN",
+  },
+];
+
+const STATUS_TICKERS = [
+  "Oppdatering registrert",
+  "Tilstand opprettholdt",
+  "Manuell korrigering utsatt",
+  "Internt notat oppdatert",
+  "Prisflate under observasjon",
+  "Begrunnelse under arbeid",
+] as const;
 
 function hashString(str: string) {
   let h = 0;
-  for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i);
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i);
+  }
   return Math.abs(h);
 }
 
-/**
- * Park–Miller LCG, gjort JS-sikkert:
- * - sørger for at x alltid er positiv (1..m-1)
- * - returnerer 0..1 (ikke negativ)
- */
 function prng(seed: number) {
-  const M = 0x7fffffff; // 2147483647
+  const M = 0x7fffffff;
   let x = seed % M;
   if (x <= 0) x += M - 1;
 
@@ -41,177 +129,332 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
 
-function pickSeed() {
+function lerp(min: number, max: number, t: number) {
+  return min + (max - min) * t;
+}
+
+function buildSeed() {
   const now = new Date();
-  // 53-minutters "syklus" (som før)
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 53));
-
-  const env =
+  const cycle = Math.floor(now.getTime() / (1000 * 60 * 59));
+  const tz =
     typeof window !== "undefined"
-      ? `${navigator.userAgent}|${window.innerWidth}x${window.innerHeight}|${navigator.language}`
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown"
       : "server";
+  const lang =
+    typeof window !== "undefined" ? navigator.language || "no-NO" : "server";
 
-  return hashString(`${cycle}|${env}`);
+  return hashString(`${cycle}|${tz}|${lang}|prishandel-hero-live-v2`);
 }
 
-const HERO_VARIANTS: HeroVariant[] = [
-  {
-    kickerTag: "SUPERDEAL",
-    kickerTail: "personer ser på “Verdighet” akkurat nå*",
-    h1: "Vi selger varer så billig at regnskapsføreren fikk hjerteinfarkt",
-    lead: "Kontinuerlig prispress. Aggressive kampanjer. Null lager. Alt må vekk.",
-    footnote: "*Tall kan være korrekte, feil eller motivasjon.",
-  },
-  {
-    kickerTag: "KAMPANJE",
-    kickerTail: "personer vurderer “Sparing” uten å spare*",
-    h1: "Prisene er satt så lavt at systemet må forklare seg i etterkant",
-    lead: "Kampanjedrift i flere lag. Avvik håndteres fortløpende. Lettelse kan utebli.",
-    footnote: "*Vurdering er ikke en handling. Det anses likevel som aktivitet.",
-  },
-  {
-    kickerTag: "UTVALGT",
-    kickerTail: "personer ser på “Ansvar” akkurat nå*",
-    h1: "Vi presser marginene til de blir administrative",
-    lead: "Rask leveranse (noen ganger). Stabile vilkår (i teorien). Ingen garanti for ro.",
-    footnote: "*Ansvar kan oppleves ulikt. Begge anses gyldige.",
-  },
-  {
-    kickerTag: "DRIFT",
-    kickerTail: "personer følger “Kontroll” uten innflytelse*",
-    h1: "Vi har kampanjer som aldri slutter, bare endrer tilstand",
-    lead: "Systemet justerer. Regnskap noterer. Marked presser. Du observerer.",
-    footnote: "*Innflytelse kan være registrert uten å foreligge.",
-  },
-];
-
-const CTA_VARIANTS: CtaVariant[] = [
-  { primary: "SE TILBUDENE", secondary: "DØGNETS DEALS", note: "Regnskapsfører er informert." },
-  { primary: "GÅ TIL KAMPANJE", secondary: "SE UTVALG", note: "Handling er frivillig." },
-  { primary: "VURDER VARER", secondary: "SE PRISER", note: "Vurdering anses som aktivitet." },
-  { primary: "FORTSETT TIL SYSTEMET", secondary: "VIS OVERSIKT", note: "Systemet er allerede i gang." },
-];
-
-function safePick<T>(arr: T[], idx: number, fallback: T): T {
-  return arr.length ? arr[idx] ?? fallback : fallback;
+function formatCode(prefix: string, n: number) {
+  return `${prefix}-${String(n).padStart(3, "0")}`;
 }
+
+function accentClasses(accent: Accent) {
+  switch (accent) {
+    case "red":
+      return {
+        badge: "bg-red-600 text-white",
+        line: "bg-red-600",
+        tint: "bg-red-500/[0.08]",
+        chip: "bg-red-50 text-red-700 border border-red-100",
+      };
+    case "black":
+      return {
+        badge: "bg-black text-yellow-300",
+        line: "bg-black",
+        tint: "bg-black/[0.05]",
+        chip: "bg-neutral-100 text-black border border-black/10",
+      };
+    default:
+      return {
+        badge: "bg-black text-yellow-300",
+        line: "bg-black",
+        tint: "bg-yellow-400/[0.10]",
+        chip: "bg-yellow-50 text-black border border-yellow-100",
+      };
+  }
+}
+
+type BaseData = {
+  item: HeroItem;
+  accent: ReturnType<typeof accentClasses>;
+  code: string;
+  baseViewers: number;
+  basePressure: number;
+  baseIntegrity: number;
+  baseAvailability: number;
+  baseCoverage: number;
+  baseFriction: number;
+};
 
 export default function HeroLive() {
-  const seed = pickSeed();
-  const rnd = prng(seed);
+  const [seed, setSeed] = useState<number | null>(null);
+  const [pulse, setPulse] = useState(0);
+  const [statusTick, setStatusTick] = useState(0);
 
-  const hero = safePick(HERO_VARIANTS, seed % HERO_VARIANTS.length, HERO_VARIANTS[0]);
-  const cta = safePick(
-    CTA_VARIANTS,
-    Math.floor(rnd() * CTA_VARIANTS.length),
-    CTA_VARIANTS[0]
-  );
+  useEffect(() => {
+    setSeed(buildSeed());
+  }, []);
 
-  // deterministisk “viewers”
-  const viewers = 3 + Math.floor(rnd() * 27); // 3–29
+  useEffect(() => {
+    if (seed === null) return;
 
-  // dot-illusjon
-  const dots = 5;
-  const active = 1 + Math.floor(rnd() * dots);
+    const pulseId = window.setInterval(() => {
+      setPulse((p) => p + 1);
+    }, 4200);
 
-  // intern “status” (bare visuals)
-  const drift = clamp(40 + rnd() * 55, 0, 100);
-  const compliance = clamp(60 + rnd() * 35, 0, 100);
-  const friction = clamp(10 + rnd() * 80, 0, 100);
+    const statusId = window.setInterval(() => {
+      setStatusTick((s) => s + 1);
+    }, 9000);
+
+    return () => {
+      window.clearInterval(pulseId);
+      window.clearInterval(statusId);
+    };
+  }, [seed]);
+
+  const base = useMemo<BaseData | null>(() => {
+    if (seed === null) return null;
+
+    const item = HEROES[seed % HEROES.length];
+    const rnd = prng(seed);
+    const accent = accentClasses(item.accent);
+
+    const baseViewers = Math.round(lerp(item.viewers[0], item.viewers[1], rnd()));
+    const basePressure = clamp(
+      lerp(item.metrics.pressure[0], item.metrics.pressure[1], rnd()),
+      0,
+      100
+    );
+    const baseIntegrity = clamp(
+      lerp(item.metrics.integrity[0], item.metrics.integrity[1], rnd()),
+      0,
+      100
+    );
+    const baseAvailability = clamp(
+      lerp(item.metrics.availability[0], item.metrics.availability[1], rnd()),
+      0,
+      100
+    );
+
+    const baseCoverage = 38 + Math.floor(rnd() * 53);
+    const baseFriction = 12 + Math.floor(rnd() * 78);
+    const code = formatCode(item.codePrefix, 100 + Math.floor(rnd() * 900));
+
+    return {
+      item,
+      accent,
+      code,
+      baseViewers,
+      basePressure,
+      baseIntegrity,
+      baseAvailability,
+      baseCoverage,
+      baseFriction,
+    };
+  }, [seed]);
+
+  const live = useMemo(() => {
+    if (!base) return null;
+
+    const viewerDrift = ((pulse % 5) - 2); // -2 til +2
+    const pressureDrift = ((pulse % 3) - 1) * 0.8; // -0.8, 0, +0.8
+    const integrityDrift = ((pulse % 4) - 1.5) * 0.45; // små bevegelser
+    const availabilityDrift = ((pulse % 3) - 1) * 1.2;
+    const coverageDrift = ((pulse % 4) - 1.5) * 1.5;
+    const frictionDrift = ((pulse % 5) - 2) * 1.2;
+
+    const viewers = clamp(
+      Math.round(base.baseViewers + viewerDrift),
+      base.item.viewers[0],
+      base.item.viewers[1] + 3
+    );
+
+    const pressure = clamp(base.basePressure + pressureDrift, 0, 100);
+    const integrity = clamp(base.baseIntegrity + integrityDrift, 0, 100);
+    const availability = clamp(base.baseAvailability + availabilityDrift, 0, 100);
+
+    const coverage = clamp(Math.round(base.baseCoverage + coverageDrift), 0, 100);
+    const friction = clamp(Math.round(base.baseFriction + frictionDrift), 0, 100);
+
+    const tickerA = STATUS_TICKERS[statusTick % STATUS_TICKERS.length];
+    const tickerB = STATUS_TICKERS[(statusTick + 2) % STATUS_TICKERS.length];
+    const tickerC = STATUS_TICKERS[(statusTick + 4) % STATUS_TICKERS.length];
+
+    const meta = [
+      { label: "Intern kode", value: base.code },
+      { label: "Dekning", value: `${coverage}%` },
+      { label: "Friksjon", value: `${friction}%` },
+      { label: "Status", value: base.item.statusLabel },
+    ];
+
+    return {
+      ...base,
+      viewers,
+      pressure,
+      integrity,
+      availability,
+      meta,
+      ticker: [tickerA, tickerB, tickerC],
+    };
+  }, [base, pulse, statusTick]);
+
+  if (!live) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded bg-black px-3 py-1 text-xs font-black text-yellow-300">
+            KAMPANJEDRIFT
+          </span>
+          <span className="text-sm font-semibold opacity-70">
+            Initialiserer prisflate og formulert trygghet…
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <h1 className="text-4xl font-black leading-tight md:text-5xl lg:text-7xl">
+            Tilbudet lastes. Tilgjengeligheten følger ikke nødvendigvis med.
+          </h1>
+          <p className="max-w-2xl text-lg font-medium opacity-80">
+            Systemet forbereder kampanjestatus, lagerfølelse og intern begrunnelse.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* KICKER */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="rounded bg-black text-yellow-300 text-xs font-black px-3 py-1">
-          {hero.kickerTag}
+    <section className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded px-3 py-1 text-xs font-black ${live.accent.badge}`}>
+          {live.item.kickerTag}
         </span>
-        <span className="text-sm font-semibold opacity-80">
-          {viewers} {hero.kickerTail}
+        <span className="text-sm font-semibold opacity-80 transition-opacity duration-300">
+          {live.viewers} {live.item.kickerTail}
         </span>
       </div>
 
-      {/* H1 */}
-      <h1 className="text-5xl md:text-5xl lg:text-7xl font-black leading-[1.02]">
-        {hero.h1}
-      </h1>
+      <div className="space-y-3">
+        <h1 className="text-4xl font-black leading-tight md:text-5xl lg:text-7xl">
+          {live.item.title}
+        </h1>
 
-      {/* LEAD */}
-      <p className="text-base md:text-lg opacity-80 max-w-xl">{hero.lead}</p>
+        <p className="max-w-2xl text-lg font-medium opacity-80">
+          {live.item.body} <span className="font-bold">{live.item.highlight}</span>
+        </p>
+      </div>
 
-      {/* CTA */}
-      <div className="flex flex-wrap items-center gap-4 pt-2">
+      <div className="flex flex-wrap items-center gap-4 pt-1">
         <a
-          href="/butikk"
-          className="inline-flex items-center gap-2 rounded-xl bg-red-600 text-white px-6 py-4 font-black text-sm hover:bg-red-700 transition"
+          href={live.item.primaryHref}
+          className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-4 text-sm font-black text-white transition hover:bg-red-700"
         >
-          {cta.primary} <span aria-hidden>→</span>
+          {live.item.primaryLabel}
+          <span aria-hidden>→</span>
         </a>
 
         <a
-          href="/kampanjer"
-          className="inline-flex items-center gap-2 rounded-xl border border-black/20 px-6 py-4 font-black text-sm hover:bg-black/5 transition"
+          href={live.item.secondaryHref}
+          className="inline-flex items-center gap-2 rounded-xl border border-black/20 px-6 py-4 text-sm font-black transition hover:bg-black/5"
         >
-          {cta.secondary}
+          {live.item.secondaryLabel}
         </a>
       </div>
 
-      <div className="text-xs opacity-60">{cta.note}</div>
-
-      {/* DOTS */}
-      <div className="flex items-center gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          {Array.from({ length: dots }).map((_, i) => {
-            const on = i + 1 === active;
-            return (
-              <span
-                key={i}
-                className={`h-2 w-2 rounded-full ${on ? "bg-black" : "bg-black/25"}`}
-              />
-            );
-          })}
-        </div>
-        <div className="text-xs opacity-60">*Sliderkontroll er midlertidig utsolgt</div>
-      </div>
-
-      <div className="text-xs opacity-60">{hero.footnote}</div>
-
-      {/* EXTRA BOX */}
-      <div className="rounded-xl border border-black/10 bg-white/70 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-black uppercase tracking-wide opacity-60">
-            Intern driftstatus
+      <div className="flex flex-wrap gap-2">
+        {live.meta.map((item) => (
+          <div
+            key={`${item.label}-${item.value}`}
+            className="rounded-lg border border-black/10 bg-white/70 px-3 py-2 text-[11px] transition-all duration-300"
+          >
+            <span className="font-semibold opacity-50">{item.label}:</span>{" "}
+            <span className="font-black">{item.value}</span>
           </div>
-          <span className="text-[11px] font-black rounded px-2 py-1 bg-black text-yellow-300">
+        ))}
+      </div>
+
+      <div className="text-xs opacity-60">{live.item.footnote}</div>
+
+      <div className={`rounded-2xl border border-black/10 p-4 ${live.accent.tint}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-wide opacity-60">
+              Intern driftstatus
+            </div>
+            <div className="mt-1 text-base font-black">{live.item.statusNote}</div>
+          </div>
+
+          <span className={`rounded px-2 py-1 text-[11px] font-black ${live.accent.badge}`}>
             Notert
           </span>
         </div>
 
-        <div className="mt-3 space-y-3">
-          <MiniBar label="Kampanjedrift" value={drift} />
-          <MiniBar label="Integritet" value={compliance} />
-          <MiniBar label="Avvik" value={friction} />
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Metric
+            label="Prispress"
+            value={live.pressure}
+            note="Aktiv"
+            accent={live.item.accent}
+          />
+          <Metric
+            label="Integritet"
+            value={live.integrity}
+            note="Notert"
+            accent={live.item.accent}
+          />
+          <Metric
+            label="Tilgjengelighet"
+            value={live.availability}
+            note="Lav"
+            accent={live.item.accent}
+          />
         </div>
 
-        <div className="mt-3 text-[11px] opacity-60">
-          Endringer er registrert. Parameterne er ikke endret.
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide opacity-55">
+          <span>{live.ticker[0]}</span>
+          <span>•</span>
+          <span>{live.ticker[1]}</span>
+          <span>•</span>
+          <span>{live.ticker[2]}</span>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-function MiniBar(props: { label: string; value: number }) {
+function Metric(props: { label: string; value: number; note: string; accent: Accent }) {
   const v = clamp(props.value, 0, 100);
+  const accent = accentClasses(props.accent);
 
   return (
-    <div>
-      <div className="flex items-center justify-between text-[11px] font-semibold opacity-60">
-        <span>{props.label}</span>
-        <span>{Math.round(v)}%</span>
+    <div className="rounded-xl border border-black/10 bg-white/65 p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+        {props.label}
       </div>
-      <div className="mt-1 h-2 rounded-full bg-black/10 overflow-hidden">
-        <div className="h-full bg-black" style={{ width: `${v}%` }} />
+
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="text-2xl font-black">{Math.round(v)}%</div>
+        <div
+          className={`shrink-0 rounded px-2 py-1 text-[10px] font-black leading-none ${accent.chip}`}
+        >
+          {props.note}
+        </div>
+      </div>
+
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/10">
+        <div
+          className={`h-full transition-[width] duration-500 ${accent.line}`}
+          style={{ width: `${v}%` }}
+        />
+      </div>
+
+      <div className="mt-3 text-[11px] leading-relaxed opacity-60">
+        {props.label === "Tilgjengelighet"
+          ? "Tilgjengelighet må ikke forveksles med vilje til salg."
+          : props.label === "Integritet"
+          ? "Verdien opprettholdes innenfor formulert trygghet."
+          : "Prispress anses som stabilt så lenge det merkes internt."}
       </div>
     </div>
   );

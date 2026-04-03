@@ -9,12 +9,18 @@ export default function VurderingPage() {
         {
           heading: "Vurderingskriterier",
           body: (
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Relevans: Varierende</li>
-              <li>Alvor: Moderat til betydelig</li>
-              <li>Prisfølelse: Foreløpig</li>
-              <li>Kundeberedskap: Kan forbedres gjennom kjøp</li>
-            </ul>
+            <>
+              <p>
+                Vurderinger gjennomføres på grunnlag av tilgjengelig informasjon,
+                registrert aktivitet og øvrige forhold som måtte anses relevante i situasjonen.
+              </p>
+              <ul className="mt-3 list-disc pl-5 space-y-1">
+                <li>Relevans: løpende vurdert</li>
+                <li>Alvor: moderat til betydelig</li>
+                <li>Prisgrunnlag: foreløpig bekreftet</li>
+                <li>Kundeberedskap: kan styrkes gjennom handling</li>
+              </ul>
+            </>
           ),
         },
         {
@@ -22,7 +28,7 @@ export default function VurderingPage() {
           body: (
             <ul className="list-disc pl-5 space-y-1">
               <li>Godkjent i teorien</li>
-              <li>Behandles (mentalt)</li>
+              <li>Behandles mentalt</li>
               <li>Midlertidig avklart</li>
               <li>Avklart tidligere</li>
               <li>Uavklart (standard)</li>
@@ -34,7 +40,7 @@ export default function VurderingPage() {
           body: (
             <p>
               Vurdering gjennomføres uten fast tidsramme. Opplevd ventetid kan avvike fra faktisk
-              ventetid. Begge anses gyldige.
+              ventetid. Begge anses gyldige så lenge vurderingen fortsatt kan sies å pågå.
             </p>
           ),
         },
@@ -54,7 +60,7 @@ export default function VurderingPage() {
           body: (
             <p>
               En vurdering er ikke en garanti. En garanti er heller ikke nødvendigvis en garanti.
-              Prishandel forholder seg til dette på en ansvarlig måte.
+              Prishandel legger dette til grunn i videre behandling.
             </p>
           ),
         },

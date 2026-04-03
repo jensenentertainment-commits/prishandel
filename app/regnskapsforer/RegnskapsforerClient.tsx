@@ -26,7 +26,7 @@ const STATUS = [
   {
     label: "AKSEPT",
     desc: "Har sluttet å kjempe. Nå logges alt.",
-    pill: "bg-green-600 text-white",
+    pill: "bg-yellow-300 text-black",
     box: "bg-white border-black/10",
   },
 ] as const;
@@ -50,29 +50,6 @@ const EVENTS_EXTRA = [
   { time: "11:11", text: "Kundeservice spurte «er dette lov?». Svar: *." },
   { time: "12:59", text: "Margin ble forsøkt innført. Ble fjernet av marked." },
   { time: "14:14", text: "Intern vurdering: «ser bra ut». Ekstern: «hjelp»." },
-] as const;
-
-const FAQ = [
-  {
-    q: "Er regnskapsfører en ekte person?",
-    a: "Ja. Dessverre. Vedkommende er også den eneste som leser vilkår.",
-  },
-  {
-    q: "Hvorfor er alt utsolgt?",
-    a: "Strategisk knapphet. Også kjent som «null lager».",
-  },
-  {
-    q: "Hvorfor kjører dere konstant tilbud?",
-    a: "Fordi det fungerer. Og fordi det aldri ble stoppet.",
-  },
-  {
-    q: "Hva betyr stjernen (*)?",
-    a: "At løftet gjelder der det passer oss og vår mentale tilstand.",
-  },
-  {
-    q: "Kan jeg kontakte regnskapsfører?",
-    a: "Du kan prøve. Regnskapsfører svarer når marginene er positive.",
-  },
 ] as const;
 
 const KPI_VARIANTS = {
@@ -102,15 +79,15 @@ function clamp(n: number, a: number, b: number) {
 
 export default function RegnskapsforerClient() {
   const { mounted, visit, seed } = useVisitVariant("regnskapsforer");
- 
+  const stableSeed = mounted ? seed : 0;
 
-  const s = useMemo(() => pick(STATUS, seed), [seed]);
+  const status = useMemo(() => pick(STATUS, stableSeed), [stableSeed]);
 
   const kpis = useMemo(() => {
-    const s1 = h32(`kpi:${seed}:1`);
-    const s2 = h32(`kpi:${seed}:2`);
-    const s3 = h32(`kpi:${seed}:3`);
-    const s4 = h32(`kpi:${seed}:4`);
+    const s1 = h32(`kpi:${stableSeed}:1`);
+    const s2 = h32(`kpi:${stableSeed}:2`);
+    const s3 = h32(`kpi:${stableSeed}:3`);
+    const s4 = h32(`kpi:${stableSeed}:4`);
 
     return {
       lager: {
@@ -130,14 +107,13 @@ export default function RegnskapsforerClient() {
         note: pick(KPI_NOTES.suksess, s4 >>> 1),
       },
     };
-  }, [seed]);
+  }, [stableSeed]);
 
   const risk = useMemo(() => {
-    // Små drift per besøk, men alltid “rimelig”
-    const a = h32(`risk:${seed}:a`);
-    const b = h32(`risk:${seed}:b`);
-    const c = h32(`risk:${seed}:c`);
-    const d = h32(`risk:${seed}:d`);
+    const a = h32(`risk:${stableSeed}:a`);
+    const b = h32(`risk:${stableSeed}:b`);
+    const c = h32(`risk:${stableSeed}:c`);
+    const d = h32(`risk:${stableSeed}:d`);
 
     return {
       prispress: clamp(92 + (a % 9), 85, 99),
@@ -145,38 +121,54 @@ export default function RegnskapsforerClient() {
       kundetilfredshet: clamp(78 + (c % 18), 50, 96),
       puls: clamp(128 + (d % 28), 90, 160),
     };
-  }, [seed]);
+  }, [stableSeed]);
 
   const events = useMemo(() => {
-    // Base + 2–3 ekstra, og “rotér” litt
-    const nExtra = 2 + (seed % 2); // 2..3
+    const nExtra = 2 + (stableSeed % 2);
     const extras: typeof EVENTS_EXTRA[number][] = [];
+
     for (let i = 0; i < nExtra; i++) {
-      extras.push(pick(EVENTS_EXTRA, h32(`extra:${seed}:${i}`)));
+      extras.push(pick(EVENTS_EXTRA, h32(`extra:${stableSeed}:${i}`)));
     }
 
     const merged = [...EVENTS_BASE, ...extras];
 
-    // liten “shuffle” som føles systematisk
     const scored = merged.map((e) => ({
       e,
-      s: h32(`evt:${seed}:${e.time}:${e.text}`),
+      s: h32(`evt:${stableSeed}:${e.time}:${e.text}`),
     }));
+
     scored.sort((x, y) => (x.s % 97) - (y.s % 97));
 
-    // behold et “logg-lengde” som ser ekte ut
     return scored.slice(0, 10).map((x) => x.e);
-  }, [seed]);
+  }, [stableSeed]);
 
-  const quote = useMemo(() => pick(QUOTES, seed >>> 2), [seed]);
- if (!mounted) return null;
+  const quote = useMemo(() => pick(QUOTES, stableSeed >>> 2), [stableSeed]);
+
+  const updatedAt = useMemo(() => {
+    const hh = String(8 + (h32(`hh:${stableSeed}`) % 9)).padStart(2, "0");
+    const mm = String(h32(`mm:${stableSeed}`) % 60).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }, [stableSeed]);
+
+  const criticalEvent = useMemo(() => {
+    return pick(
+      [
+        "KRITISK AVVIK: Kampanje forlenget uten økonomisk grunnlag.",
+        "KRITISK AVVIK: Prispress videreføres til tross for motstand.",
+        "KRITISK AVVIK: Margin forsøkt innført og umiddelbart fjernet.",
+        "KRITISK AVVIK: Drift følger markedets stemning, ikke tallgrunnlag.",
+      ] as const,
+      stableSeed >>> 4,
+    );
+  }, [stableSeed]);
+
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10">
-      {/* header */}
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="inline-flex items-center gap-2">
-            <span className="rounded bg-black text-yellow-300 px-3 py-1 text-xs font-black">
+            <span className="rounded bg-black px-3 py-1 text-xs font-black text-yellow-300">
               OFFISIELL
             </span>
             <span className="text-sm font-semibold opacity-80">
@@ -184,236 +176,216 @@ export default function RegnskapsforerClient() {
             </span>
           </div>
 
-          <h1 className="mt-3 text-3xl md:text-4xl font-black">Regnskapsfører</h1>
-          <p className="mt-2 text-sm md:text-base opacity-75 max-w-2xl">
-            Status, hendelseslogg og vurderinger knyttet til kontinuerlig prispress.
-            Dette er ikke en klageside. Det er en dokumentasjon.
+          <h1 className="mt-3 text-3xl font-black md:text-5xl">Regnskapsfører</h1>
+
+          <p className="mt-2 max-w-2xl text-sm opacity-75 md:text-base">
+            Status, logg og vurderinger knyttet til kontinuerlig prispress.
+            Dette er ikke en protest. Det er dokumentasjon.
           </p>
+
           <div className="mt-2 text-xs font-semibold opacity-60">
-            Besøk: <span className="font-black">{visit}</span> • Oppdatering: automatisk, uten samtykke.
+            Besøk: <span className="font-black">{mounted ? visit : "—"}</span> •
+            Oppdatering: {updatedAt} • samtykke: nei
           </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <a
             href="/butikk"
-            className="rounded-lg bg-red-600 text-white px-5 py-3 font-black hover:opacity-90"
+            className="rounded-lg bg-red-600 px-5 py-3 font-black text-white hover:opacity-90"
           >
-            TILBAKE TIL BUTIKK →
+            Tilbake til butikk →
           </a>
           <a
             href="/kampanjer"
-            className="rounded-lg bg-white text-black px-5 py-3 font-black border border-black/20 hover:bg-black/5"
+            className="rounded-lg border border-black/20 bg-white px-5 py-3 font-black text-black hover:bg-black/5"
           >
-            SE KAMPANJER
+            Se kampanjer
           </a>
         </div>
       </div>
 
-      {/* status + KPI */}
-      <section className="mt-8 grid gap-4 lg:grid-cols-3">
-        <div className={`rounded-2xl border shadow-sm p-6 ${s.box}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="font-black">Status</div>
-            <span className={`text-xs font-black rounded px-2 py-1 ${s.pill}`}>
-              {s.label}
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold opacity-90">{s.desc}</p>
+      <section className="mt-8 overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm">
+        <div className="border-b border-black/10 bg-black px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-yellow-300">
+          ØKONOMISK TILSTAND  •  PRISPRESS HØYT  •  MOTSTAND REGISTRERT  •  STANS IKKE TILGJENGELIG
+        </div>
 
-          <div className="mt-4 text-xs opacity-70">
-            Sist oppdatert: automatisk, uten samtykke.
+        <div className="border-b border-black/10 bg-red-600 px-5 py-4 text-white">
+          <div className="inline-flex items-center gap-2 rounded bg-white/15 px-2 py-1 text-xs font-black">
+            <span className="inline-block h-2 w-2 rounded-full bg-white" />
+            KRITISK HENDELSE
           </div>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            <button
-              disabled
-              className="rounded-lg bg-black text-white px-4 py-2 font-black opacity-40 cursor-not-allowed"
-            >
-              GODKJENN KAMPANJE
-            </button>
-            <button
-              disabled
-              className="rounded-lg border border-black/20 bg-white px-4 py-2 font-black opacity-40 cursor-not-allowed"
-            >
-              STANS KAMPANJE
-            </button>
-          </div>
-          <div className="mt-2 text-xs opacity-60">
-            Begge knapper er deaktivert av markedsavdelingen.
+          <div className="mt-2 text-xl font-black md:text-2xl">{criticalEvent}</div>
+          <div className="mt-1 text-xs opacity-90">
+            Tiltak foreslått. Tiltak ignorert.
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-          <div className="font-black">Nøkkeltall</div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Kpi label="Lagerstatus" value={kpis.lager.value} note={kpis.lager.note} />
-            <Kpi label="Kampanjegrad" value={kpis.kampanjegrad.value} note={kpis.kampanjegrad.note} />
-            <Kpi label="Margin" value={kpis.margin.value} note={kpis.margin.note} />
-            <Kpi label="Suksessrate" value={kpis.suksess.value} note={kpis.suksess.note} />
-          </div>
-          <div className="mt-4 text-xs opacity-60">
-            Tall kan avvike fra virkeligheten. Virkeligheten ble ikke konsultert.
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div className="font-black">Risikobånd</div>
-            <span className="text-xs font-black rounded bg-red-600 text-white px-2 py-1">
-              HØY
-            </span>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <RiskBar label="Prispress" value={risk.prispress} />
-            <RiskBar label="Etterpåklokskap" value={risk.etterpaklokskap} />
-            <RiskBar label="Kundetilfredshet" value={risk.kundetilfredshet} />
-            <RiskBar label="Regnskapsfører-puls" value={risk.puls} unit=" bpm" />
-          </div>
-
-          <div className="mt-4 rounded-lg bg-yellow-300 border border-black/10 p-4">
-            <div className="font-black text-sm">Tiltak</div>
-            <p className="mt-1 text-sm opacity-90">
-              Anbefaling: Reduser kampanjer.
-              <span className="font-black"> Status: ignorert.</span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* log */}
-      <section className="mt-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black">Hendelseslogg</h2>
-            <p className="text-sm opacity-70">Dette er ikke drama. Dette er drift.</p>
-          </div>
-          <button
-            disabled
-            className="rounded-lg bg-green-600 text-white px-4 py-2 font-black opacity-40 cursor-not-allowed"
-          >
-            EKSPORTER TIL EXCEL
-          </button>
-        </div>
-
-        <div className="mt-4 rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-12 bg-neutral-50 border-b border-black/10 px-4 py-3 text-xs font-black">
-            <div className="col-span-2">Tid</div>
-            <div className="col-span-10">Hendelse</div>
-          </div>
-
-          <div className="divide-y divide-black/10">
-            {events.map((e) => (
-              <div key={e.time + e.text} className="grid grid-cols-12 px-4 py-3">
-                <div className="col-span-2 text-sm font-black">{e.time}</div>
-                <div className="col-span-10 text-sm opacity-80">{e.text}</div>
+        <div className="grid gap-4 p-5 lg:grid-cols-[1.02fr,1.45fr]">
+          <div className="space-y-4">
+            <div className={`rounded-3xl border p-6 shadow-sm ${status.box}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-black">Status</div>
+                <span className={`rounded px-2 py-1 text-xs font-black ${status.pill}`}>
+                  {status.label}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="mt-3 text-xs opacity-60">Loggen er automatisk. Ansvar er teoretisk.</div>
-      </section>
+              <p className="mt-3 text-sm font-semibold opacity-90">{status.desc}</p>
 
-      {/* FAQ + contact */}
-      <section className="mt-10 grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-          <h2 className="text-2xl font-black">Spørsmål & svar</h2>
-          <p className="mt-1 text-sm opacity-70">Standard spørsmål. Ustandard svar.</p>
-
-          <div className="mt-6 space-y-4">
-            {FAQ.map((item) => (
-              <div key={item.q} className="rounded-xl border border-black/10 p-4">
-                <div className="font-black">{item.q}</div>
-                <div className="mt-1 text-sm opacity-80">{item.a}</div>
+              <div className="mt-4 text-xs opacity-70">
+                Sist oppdatert: automatisk, uten samtykke.
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="rounded-2xl bg-white border border-black/10 shadow-sm p-6">
-          <h2 className="text-xl font-black">Kontakt</h2>
-          <p className="mt-1 text-sm opacity-70">
-            Dette skjemaet videresendes til økonomiavdelingen.*
-          </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <button
+                  disabled
+                  className="cursor-not-allowed rounded-lg bg-black px-4 py-2 font-black text-white opacity-40"
+                >
+                  Godkjenn kampanje
+                </button>
+                <button
+                  disabled
+                  className="cursor-not-allowed rounded-lg border border-black/20 bg-white px-4 py-2 font-black opacity-40"
+                >
+                  Stans kampanje
+                </button>
+              </div>
 
-          <form className="mt-4 space-y-3">
-            <input className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm" placeholder="Navn" />
-            <input className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm" placeholder="E-post" />
-            <select className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm font-semibold">
-              <option>Henvendelse: Pris</option>
-              <option>Henvendelse: Lager</option>
-              <option>Henvendelse: Angrerett</option>
-              <option>Henvendelse: Regnskapsfører</option>
-            </select>
-            <textarea
-              className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm"
-              placeholder="Melding (valgfritt, blir ignorert med stil)"
-              rows={5}
-            />
-            <button
-              type="button"
-              disabled
-              className="w-full rounded-lg bg-red-600 text-white py-3 font-black opacity-40 cursor-not-allowed"
-            >
-              SEND INN (MIDLERTIDIG UTILGJENGELIG)
-            </button>
-          </form>
-
-          <div className="mt-3 text-xs opacity-60">*Videresending kan avvike fra virkeligheten.</div>
-
-          <div className="mt-5 rounded-lg bg-neutral-50 border border-black/10 p-4">
-            <div className="font-black text-sm">Regnskapsfører sier:</div>
-            <p className="mt-1 text-sm opacity-80">{quote}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA bottom */}
-      <section className="mt-10">
-        <div className="rounded-2xl bg-red-600 text-white border border-black/10 shadow-sm p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="text-xs font-black rounded bg-white/15 px-2 py-1 inline-block">
-              KAMPANJE PÅGÅR
+              <div className="mt-2 text-xs opacity-60">
+                Begge knapper er deaktivert av markedsavdelingen.
+              </div>
             </div>
-            <h3 className="mt-2 text-2xl font-black">Prisene gir seg aldri. Det gjør lageret.</h3>
-            <p className="mt-1 text-sm opacity-90">Se tilbudene før de blir enda mer uansvarlige.</p>
+
+            <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+              <div className="font-black">Nøkkeltall</div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Kpi label="Lagerstatus" value={kpis.lager.value} note={kpis.lager.note} />
+                <Kpi label="Kampanjegrad" value={kpis.kampanjegrad.value} note={kpis.kampanjegrad.note} />
+                <Kpi label="Margin" value={kpis.margin.value} note={kpis.margin.note} />
+                <Kpi label="Suksessrate" value={kpis.suksess.value} note={kpis.suksess.note} />
+              </div>
+
+              <div className="mt-4 text-xs opacity-60">
+                Tall kan avvike fra virkeligheten. Virkeligheten ble ikke konsultert.
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="font-black">Risikobånd</div>
+                <span className="rounded bg-red-600 px-2 py-1 text-xs font-black text-white">
+                  HØY
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <RiskBar label="Prispress" value={risk.prispress} />
+                <RiskBar label="Etterpåklokskap" value={risk.etterpaklokskap} />
+                <RiskBar label="Kundetilfredshet" value={risk.kundetilfredshet} />
+                <RiskBar label="Regnskapsfører-puls" value={risk.puls} unit=" bpm" />
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-black/10 bg-yellow-300 p-4">
+                <div className="text-sm font-black">Tiltak</div>
+                <p className="mt-1 text-sm opacity-90">
+                  Anbefaling: Reduser kampanjer.
+                  <span className="font-black"> Status: ignorert.</span>
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="/butikk"
-              className="rounded-lg bg-white text-black px-5 py-3 font-black hover:opacity-90"
-            >
-              SE TILBUDENE →
-            </a>
-            <a
-              href="/kampanjer"
-              className="rounded-lg border border-white/30 px-5 py-3 font-black hover:bg-white/10"
-            >
-              KAMPANJER
-            </a>
+          <div className="space-y-4">
+            <section className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-black/10 bg-black px-5 py-4 text-white">
+                <div>
+                  <div className="inline-block rounded bg-white/15 px-2 py-1 text-xs font-black">
+                    HENDELSESLOGG
+                  </div>
+                  <div className="mt-2 text-lg font-black">Driftsovervåkning</div>
+                  <div className="text-xs opacity-70">
+                    Dette er ikke drama. Dette er drift.
+                  </div>
+                </div>
+
+                <button
+                  disabled
+                  className="cursor-not-allowed rounded bg-white/15 px-3 py-2 text-xs font-black opacity-50"
+                >
+                  Eksporter
+                </button>
+              </div>
+
+              <div className="grid grid-cols-12 border-b border-black/10 bg-neutral-50 px-4 py-3 text-xs font-black">
+                <div className="col-span-2">Tid</div>
+                <div className="col-span-10">Hendelse</div>
+              </div>
+
+              <div className="divide-y divide-black/10">
+                {events.map((e, index) => {
+                  const emphasized = index === 1 || index === 4;
+
+                  return (
+                    <div
+                      key={e.time + e.text}
+                      className={[
+                        "grid grid-cols-12 px-4 py-3",
+                        emphasized ? "bg-red-50" : "bg-white",
+                      ].join(" ")}
+                    >
+                      <div className="col-span-2 text-sm font-black">{e.time}</div>
+                      <div className="col-span-10 text-sm opacity-80">{e.text}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-black/10 px-4 py-3 text-xs opacity-60">
+                Loggen er automatisk. Ansvar er teoretisk.
+              </div>
+            </section>
+
+            <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+              <div className="text-sm font-black">Regnskapsfører sier</div>
+              <p className="mt-2 text-xl font-black leading-relaxed">{quote}</p>
+              <div className="mt-3 text-xs opacity-60">
+                Intern bemerkning: Hvis du ser dette, er det allerede notert.
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-black/10 bg-red-600 p-6 text-white shadow-sm">
+              <div className="inline-block rounded bg-white/15 px-2 py-1 text-xs font-black">
+                KAMPANJE PÅGÅR
+              </div>
+
+              <h3 className="mt-2 text-2xl font-black md:text-3xl">
+                Prisene gir seg aldri. Det gjør lageret.
+              </h3>
+
+              <p className="mt-1 text-sm opacity-90">
+                Se tilbudene før de blir ytterligere begrunnet i etterkant.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href="/butikk"
+                  className="rounded-lg bg-white px-5 py-3 font-black text-black hover:opacity-90"
+                >
+                  Se tilbudene →
+                </a>
+                <a
+                  href="/kampanjer"
+                  className="rounded-lg border border-white/30 px-5 py-3 font-black hover:bg-white/10"
+                >
+                  Kampanjer
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-
-      <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4">
-        <div className="text-xs font-black opacity-70">🧾 Intern referanse</div>
-        <div className="mt-1 text-sm opacity-80">
-          Driftstatus (ikke offentlig). Hvis du ser dette, er det notert.
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <a
-            href="/intern"
-            className="inline-flex rounded-lg bg-white text-black px-4 py-2 text-sm font-black border border-black/20 hover:bg-black/5"
-          >
-            Åpne intern status →
-          </a>
-          <span className="text-xs opacity-60">Arkivert. Deling frarådes.</span>
-        </div>
-      </div>
 
       <div className="mt-6 text-xs opacity-50">
         Prishandel tar økonomi på alvor. Derfor outsources den til regnskapsfører.
@@ -424,7 +396,7 @@ export default function RegnskapsforerClient() {
 
 function Kpi({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="rounded-xl bg-neutral-50 border border-black/10 p-4">
+    <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
       <div className="text-xs font-black opacity-70">{label}</div>
       <div className="mt-1 text-lg font-black">{value}</div>
       <div className="text-xs opacity-60">{note}</div>
@@ -442,6 +414,7 @@ function RiskBar({
   unit?: string;
 }) {
   const display = Math.min(value, 999);
+
   return (
     <div>
       <div className="flex items-center justify-between text-xs font-semibold opacity-80">
@@ -451,8 +424,11 @@ function RiskBar({
           {unit}
         </span>
       </div>
-      <div className="mt-1 h-3 rounded-full bg-neutral-200 overflow-hidden border border-black/10">
-        <div className="h-full bg-red-600" style={{ width: `${Math.min(display, 100)}%` }} />
+      <div className="mt-1 h-3 overflow-hidden rounded-full border border-black/10 bg-neutral-200">
+        <div
+          className="h-full bg-red-600"
+          style={{ width: `${Math.min(display, 100)}%` }}
+        />
       </div>
     </div>
   );

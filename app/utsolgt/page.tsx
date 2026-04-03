@@ -71,7 +71,7 @@ export default function UtsolgtPage() {
           <h1 className="mt-3 text-3xl md:text-4xl font-black">Utsolgt</h1>
           <p className="mt-2 text-sm md:text-base opacity-75 max-w-2xl">
             Noen butikker går tomme av og til. Prishandel har gjort det til en
-            livsstil. Her er status, statistikk og et forsøk på forklaring.
+vedvarende tilstand. Her er status, nøkkeltall og løpende dokumentasjon.
           </p>
         </div>
 
@@ -174,9 +174,7 @@ export default function UtsolgtPage() {
             ))}
           </div>
 
-          <div className="mt-3 text-xs opacity-60">
-            *livefeed kan være forhåndsskrevet.
-          </div>
+          
 
           <div className="mt-4 flex flex-wrap gap-2">
             <a
@@ -278,12 +276,16 @@ export default function UtsolgtPage() {
         </div>
       </section>
 
-      <div className="mt-6 text-xs opacity-50">
-        Prishandel anbefaler å håndtere forventninger. Prishandel anbefaler ikke å følge egne råd. E-KONTAKT-418  
-Denne handlingen kan ikke fullføres automatisk. Ved særskilte tilfeller kan manuell behandling vurderes. prishandel@turforventninger.no
-
-
-      </div>
+      <div className="mt-6 rounded-xl border border-black/10 bg-white p-4 text-xs opacity-70">
+  <div className="font-black text-sm text-black">Merknad</div>
+  <div className="mt-2">
+    Prishandel anbefaler å håndtere forventninger, men kan ikke garantere at anbefalingen etterleves internt.
+  </div>
+  <div className="mt-2">
+    E-KONTAKT-418: Denne handlingen kan ikke fullføres automatisk. Ved særskilte tilfeller kan manuell behandling vurderes.
+  </div>
+  <div className="mt-2 font-semibold text-black">kontakt@prishandel.no</div>
+</div>
     </main>
   );
 }

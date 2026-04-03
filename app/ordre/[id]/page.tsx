@@ -1,38 +1,66 @@
-// app/ordre/[id]/page.tsx
+import Link from "next/link";
 import { notFound } from "next/navigation";
+
+type Outcome = "normal" | "systemfeil";
 
 type Order = {
   id: string;
+  outcome: Outcome;
   status: string;
   handler: string;
   payment: string;
   delivery: string;
   created: string;
-    ref: string;
+  ref: string;
   sys: string;
   prh: string;
   caseType: string;
   severity: string;
+  processingLevel: string;
 
-
-  // “telemetri” fra checkout
   from?: string;
   code?: string;
   items?: string;
   total?: string;
-  outcome?: string;
 };
 
-function fakeOrder(id: string, sp?: Record<string, string | string[] | undefined>): Order | null {
-  const clean = (id ?? "").trim();
-  if (!clean) return null;
+function isValidOrderId(id: string) {
+  return /^PRH-\d{4}$/i.test(id.trim());
+}
 
-  const pick = (k: string) => {
+function hashCode(input: string) {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function pickFrom<T>(items: readonly T[], seed: number): T {
+  return items[seed % items.length];
+}
+
+function fakeOrder(
+  id: string,
+  sp?: Record<string, string | string[] | undefined>
+): Order | null {
+  const clean = (id ?? "").trim().toUpperCase();
+  if (!isValidOrderId(clean)) return null;
+
+  const get = (k: string) => {
     const v = sp?.[k];
     return Array.isArray(v) ? v[0] : v;
   };
 
-  const outcome = pick("outcome");
+  const h = hashCode(clean);
+
+  const queryOutcome = get("outcome");
+  const derivedOutcome: Outcome = h % 5 === 0 || h % 7 === 0 ? "systemfeil" : "normal";
+  const outcome: Outcome =
+    queryOutcome === "systemfeil" || queryOutcome === "normal"
+      ? queryOutcome
+      : derivedOutcome;
+
   const payment =
     outcome === "systemfeil"
       ? "Avvist av mellomlag (midlertidig)"
@@ -43,25 +71,83 @@ function fakeOrder(id: string, sp?: Record<string, string | string[] | undefined
       ? "Avventer manuell tolkning"
       : "Behandles (mentalt)";
 
+  const delivery =
+    outcome === "systemfeil"
+      ? "Under vurdering"
+      : pickFrom(["Ubestemt", "Avklart tidligere", "Under vurdering"], h);
+
+  const handler =
+    outcome === "systemfeil"
+      ? "Regnskap"
+      : pickFrom(
+          ["Markedsavdelingen", "Kundeservice", "Virkeligheten", "Regnskap"],
+          Math.floor(h / 3)
+        );
+
+  const severity =
+    outcome === "systemfeil"
+      ? "Betydelig"
+      : pickFrom(["Lav", "Moderat", "Lav"], Math.floor(h / 5));
+
+  const caseType = pickFrom(
+    [
+      "Handelsrelatert vurdering",
+      "Administrativ avklaring",
+      "Kundemessig etterbehandling",
+      "Intern salgsoppfølging",
+    ],
+    Math.floor(h / 7)
+  );
+
+  const processingLevel =
+    outcome === "systemfeil" ? "Utvidet administrativt" : "Administrativt";
+
+  const n1 = String(h).padStart(6, "0");
+  const n2 = String(h * 3).padStart(6, "0");
+  const n3 = String(h * 7).padStart(6, "0");
+
+  const from = get("from") ?? "register";
+  const code = get("code") ?? `IKKE-${n1.slice(-4)}`;
+  const items = get("items") ?? `${(h % 3) + 1}`;
+  const total = get("total") ?? `${(h % 9) * 100}`;
+
   return {
     id: clean,
+    outcome,
     status,
-    handler: "Markedsavdelingen",
+    handler,
     payment,
-    delivery: "Ubestemt",
-    created: "Nettopp",
-    ref: `REF-${clean.slice(0, 4).toUpperCase()}-${clean.length}7`,
-    sys: `SYS-${clean.slice(-4).toUpperCase()}-${clean.length}3`,
-    prh: `PRH-${clean.slice(0, 2).toUpperCase()}-${clean.slice(-2).toUpperCase()}`,
-    caseType: "Handelsrelatert vurdering",
-    severity: outcome === "systemfeil" ? "Betydelig" : "Moderat",
-
-    from: pick("from") ?? undefined,
-    code: pick("code") ?? undefined,
-    items: pick("items") ?? undefined,
-    total: pick("total") ?? undefined,
-    outcome: outcome ?? undefined,
+    delivery,
+    created: "Registrert nylig",
+    ref: `REF-${n1.slice(0, 3)}-${n2.slice(-3)}`,
+    sys: `SYS-${n2.slice(1, 5)}`,
+    prh: `PRH-${clean.slice(4, 6)}-${n3.slice(-3)}`,
+    caseType,
+    severity,
+    processingLevel,
+    from,
+    code,
+    items,
+    total,
   };
+}
+
+function logLines(order: Order) {
+  if (order.outcome === "systemfeil") {
+    return [
+      "Registrert i systemet",
+      "Overført til mellomlag for foreløpig avvisning",
+      "Sendt til manuell tolkning",
+      "Videre behandling avventer administrativ ro",
+    ];
+  }
+
+  return [
+    "Registrert i systemet",
+    `Tildelt avdeling: ${order.handler}`,
+    "Vurdering initiert uten bindende frist",
+    "Foreløpig avklaring opprettet",
+  ];
 }
 
 export default async function OrderPage({
@@ -76,23 +162,23 @@ export default async function OrderPage({
 
   const order = fakeOrder(id, sp);
   if (!order) notFound();
-  
+
+  const logs = logLines(order);
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-16">
-      <div className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-        {/* HEADER */}
-        <div className="bg-green-600 text-white px-6 py-5">
-          <div className="text-sm font-black uppercase tracking-wide">Ordre mottatt</div>
+    <main className="mx-auto max-w-3xl px-4 py-16">
+      <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
+        <div className="bg-black px-6 py-5 text-white">
+          <div className="text-sm font-black uppercase tracking-wide text-yellow-300">
+            Ordre registrert
+          </div>
           <h1 className="mt-1 text-2xl font-black">Takk for bestillingen*</h1>
-          <div className="mt-1 text-sm opacity-90">
-            *bestillingen kan avvike fra virkeligheten
+          <div className="mt-1 text-sm text-white/80">
+            * bestillingen kan avvike fra virkeligheten
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div className="p-6 space-y-6">
-          {/* ORDER META */}
+        <div className="space-y-6 p-6">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <Meta label="Ordrenummer" value={order.id} />
             <Meta label="Status" value={order.status} />
@@ -101,94 +187,83 @@ export default async function OrderPage({
             <Meta label="Forventet levering" value={order.delivery} />
             <Meta label="Tidspunkt" value={order.created} />
 
-            {/* “føles ekte” felt fra kassa */}
-            <Meta label="Kilde" value={order.from ? order.from : "ukjent"} />
-            <Meta label="Bekreftelseskode" value={order.code ? order.code : "ikke utstedt"} />
-            <Meta label="Antall varer" value={order.items ? order.items : "0 (midlertidig)"} />
+            <Meta label="Kilde" value={order.from ?? "ukjent"} />
+            <Meta label="Bekreftelseskode" value={order.code ?? "ikke utstedt"} />
+            <Meta label="Antall varer" value={order.items ?? "0"} />
             <Meta label="Total" value={order.total ? `${order.total},-` : "uberegnet"} />
           </div>
 
-          {/* DIVIDER */}
           <div className="h-px bg-black/10" />
-{/* CASE DETAILS */}
-<div className="space-y-2">
-  <div className="font-black">Saksdetaljer</div>
-  <div className="grid grid-cols-2 gap-4 text-sm">
-    <Meta label="Referanse" value={order.ref} />
-    <Meta label="Systemkode" value={order.sys} />
-    <Meta label="PRH-nøkkel" value={order.prh} />
-    <Meta label="Sakstype" value={order.caseType} />
-    <Meta label="Alvorlighetsgrad" value={order.severity} />
-    <Meta label="Behandlingsnivå" value="Administrativt" />
-  </div>
-</div>
 
-<div className="h-px bg-black/10" />
+          <div className="space-y-2">
+            <div className="font-black">Saksdetaljer</div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <Meta label="Referanse" value={order.ref} />
+              <Meta label="Systemkode" value={order.sys} />
+              <Meta label="PRH-nøkkel" value={order.prh} />
+              <Meta label="Sakstype" value={order.caseType} />
+              <Meta label="Alvorlighetsgrad" value={order.severity} />
+              <Meta label="Behandlingsnivå" value={order.processingLevel} />
+            </div>
+          </div>
 
-{/* PROCESS LOG */}
-<div className="space-y-2">
-  <div className="font-black">Behandlingslogg</div>
-  <ul className="text-sm space-y-2">
-    <li className="flex gap-3">
-      <span className="w-20 text-xs font-semibold opacity-60">T+00</span>
-      <span className="opacity-80">Registrert i systemet</span>
-    </li>
-    <li className="flex gap-3">
-      <span className="w-20 text-xs font-semibold opacity-60">T+01</span>
-      <span className="opacity-80">Tildelt avdeling: Marked</span>
-    </li>
-    <li className="flex gap-3">
-      <span className="w-20 text-xs font-semibold opacity-60">T+02</span>
-      <span className="opacity-80">Vurdering initiert (uten frist)</span>
-    </li>
-    <li className="flex gap-3">
-      <span className="w-20 text-xs font-semibold opacity-60">T+03</span>
-      <span className="opacity-80">Foreløpig avklaring: Ubestemt</span>
-    </li>
-  </ul>
-  <div className="text-xs opacity-60">
-    Loggen viser et utvalg av hendelser. Øvrige hendelser kan være utelatt av hensyn til ro.
-  </div>
-</div>
+          <div className="h-px bg-black/10" />
 
-<div className="h-px bg-black/10" />
+          <div className="space-y-2">
+            <div className="font-black">Behandlingslogg</div>
+            <ul className="space-y-2 text-sm">
+              {logs.map((line, index) => (
+                <li key={index} className="flex gap-3">
+                  <span className="w-20 text-xs font-semibold opacity-60">
+                    T+0{index}
+                  </span>
+                  <span className="opacity-80">{line}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="text-xs opacity-60">
+              Loggen viser et utvalg av hendelser. Øvrige hendelser kan være utelatt
+              av hensyn til systemro.
+            </div>
+          </div>
 
-          {/* MESSAGE */}
+          <div className="h-px bg-black/10" />
+
           <div className="space-y-2">
             <div className="font-black">Hva skjer nå?</div>
             <p className="text-sm opacity-80">
-              Ordren din er registrert i systemet og vurderes fortløpende. Vurderingen foretas av
-              markedsavdelingen i samråd med virkeligheten.
+              Ordren din er registrert i systemet og vurderes fortløpende. Vurderingen
+              foretas administrativt i samråd med tilgjengelige forhold.
             </p>
-            <p className="text-sm opacity-80">Du trenger ikke gjøre noe. Det gjør heller ikke vi.</p>
+            <p className="text-sm opacity-80">
+              Det kreves ingen handling fra din side på nåværende tidspunkt.
+            </p>
           </div>
 
-          {/* CTA */}
           <div className="flex flex-wrap gap-3 pt-2">
-            <a
+            <Link
               href={`/sporing/${encodeURIComponent(order.id)}`}
-              className="rounded-lg bg-black text-white px-5 py-3 font-black hover:opacity-90"
+              className="rounded-lg bg-black px-5 py-3 font-black text-white hover:opacity-90"
             >
               Spor pakke →
-            </a>
-            <a
+            </Link>
+            <Link
               href="/kampanjer"
-              className="rounded-lg bg-red-600 text-white px-5 py-3 font-black hover:opacity-90"
+              className="rounded-lg bg-red-600 px-5 py-3 font-black text-white hover:opacity-90"
             >
               Se flere tilbud →
-            </a>
-            <a
+            </Link>
+            <Link
               href="/kundeservice"
-              className="rounded-lg bg-white text-black px-5 py-3 font-black border border-black/20 hover:bg-black/5"
+              className="rounded-lg border border-black/20 bg-white px-5 py-3 font-black text-black hover:bg-black/5"
             >
               Kontakt kundeservice
-            </a>
+            </Link>
           </div>
 
-          {/* FOOTNOTE */}
-          <div className="text-xs opacity-60 pt-2">
+          <div className="pt-2 text-xs opacity-60">
             🧾 Regnskap: “Denne ordren er notert.” <br />
-            📣 Marked: “Denne ordren er viktig.”
+            📣 Marked: “Denne ordren er registrert som relevant.”
           </div>
         </div>
       </div>

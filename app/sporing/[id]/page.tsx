@@ -65,13 +65,13 @@ export default async function TrackingPage({
         {/* HEADER */}
         <div className="bg-black text-yellow-300 px-6 py-5">
           <div className="text-xs font-black uppercase tracking-wide">
-            Sporing (simulert)
+            Forsendelsessporing
           </div>
           <h1 className="mt-1 text-2xl font-black text-white">
             Pakke: <span className="text-yellow-300">{id}</span>
           </h1>
           <div className="mt-1 text-sm text-white/80">
-            Status kan være korrekt, feil, eller en kampanje.
+            Status oppdateres fortløpende og med varierende grad av sammenheng.
           </div>
         </div>
 
