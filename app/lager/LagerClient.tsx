@@ -318,7 +318,7 @@ export default function LagerClient() {
                   >
                     <div className="grid grid-cols-12 items-start gap-3">
                       <div className="col-span-3 min-w-0">
-                        <div className="font-black">{r.p.name}</div>
+                        <div className="font-black">{r.p.title}</div>
                         <div className="mt-1 text-xs opacity-60">{r.ref}</div>
                       </div>
 
