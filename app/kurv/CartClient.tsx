@@ -221,7 +221,7 @@ export default function CartClient({ products }: { products: Product[] }) {
           </div>
 
           <div className="px-6 pt-3 text-xs font-semibold opacity-60">
-            {say(voice, itemCount === 0 ? "cart_empty" : "cart_status", { status })}
+            {say(voice, itemCount === 0 ? "cart_empty" : "cart_status")}
           </div>
 
           {linesWithProduct.length === 0 ? (
@@ -313,7 +313,7 @@ export default function CartClient({ products }: { products: Product[] }) {
                           </div>
 
                           <span className="rounded bg-yellow-300 px-2 py-1 text-xs font-semibold">
-                            {p.badge}
+                            getBadge(p.now, p.before)
                           </span>
 
                           <span className="text-xs opacity-60">{lineState}</span>

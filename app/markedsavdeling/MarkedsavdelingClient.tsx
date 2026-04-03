@@ -120,7 +120,7 @@ export default function MarkedsavdelingClient() {
 
   const generatedFoot = useMemo(() => {
     if (!mounted) return "🧾 Regnskapsfører: Vurderes separat.";
-    return `🧾 Regnskapsfører: ${voices.ledger.ps()}`;
+    return `🧾 Regnskapsfører: ${voices.ledger.extra()}`;
   }, [mounted, stableSeed]);
 
   const ticker = useMemo(() => {

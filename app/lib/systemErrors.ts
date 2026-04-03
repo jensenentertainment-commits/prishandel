@@ -12,16 +12,40 @@ export type ErrorCode =
   | "E-COOKIE-451"
   | "E-SKJEMA-400";
 
+export type ErrorTag =
+  | "checkout"
+  | "betaling"
+  | "utsolgt"
+  | "lager"
+  | "produkt"
+  | "pris"
+  | "kampanje"
+  | "vipps"
+  | "klarna"
+  | "frakt"
+  | "shipping"
+  | "retur"
+  | "support"
+  | "margin"
+  | "compliance"
+  | "cookies"
+  | "skjema"
+  | "intern";
+
 export type SystemError = {
   code: ErrorCode;
   title: string;
   summary: string;
   whatHappened: string[];
-  whatYouCanDo: { label: string; href: string; tone?: "primary" | "secondary" }[];
+  whatYouCanDo: {
+    label: string;
+    href: string;
+    tone?: "primary" | "secondary";
+  }[];
   market: string;
   accounting: string;
   severity: "P0" | "P1" | "P2" | "P3";
-  tags: string[];
+  tags: ErrorTag[];
 };
 
 export const SYSTEM_ERRORS: SystemError[] = [
@@ -162,7 +186,11 @@ export const SYSTEM_ERRORS: SystemError[] = [
     ],
     whatYouCanDo: [
       { label: "Se kampanjer →", href: "/kampanjer", tone: "primary" },
-      { label: "Les regnskapsførerens notat", href: "/regnskapsforer", tone: "secondary" },
+      {
+        label: "Les regnskapsførerens notat",
+        href: "/regnskapsforer",
+        tone: "secondary",
+      },
     ],
     market: "Når marginen dør, lever volumet.",
     accounting: "Dette er ikke poesi. Dette er panikk.",
@@ -207,9 +235,22 @@ export const SYSTEM_ERRORS: SystemError[] = [
   },
 ];
 
+export const SYSTEM_ERROR_MAP: Record<ErrorCode, SystemError> = Object.fromEntries(
+  SYSTEM_ERRORS.map((error) => [error.code, error])
+) as Record<ErrorCode, SystemError>;
+
+function isErrorCode(code: string): code is ErrorCode {
+  return code in SYSTEM_ERROR_MAP;
+}
+
 export function getSystemError(code: string) {
-  const normalized = code.toUpperCase().trim() as ErrorCode;
-  return SYSTEM_ERRORS.find((e) => e.code === normalized) ?? null;
+  const normalized = code.toUpperCase().trim();
+
+  if (!isErrorCode(normalized)) {
+    return null;
+  }
+
+  return SYSTEM_ERROR_MAP[normalized];
 }
 
 // Deterministisk “sist observert” basert på kode

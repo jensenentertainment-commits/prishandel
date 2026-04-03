@@ -36,7 +36,7 @@ export default function CustomersAlsoBought(props: { excludeSlug?: string }) {
               </span>
 
               <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
-                {p.badge}
+                getBadge(p.now, p.before)
               </span>
 
               <div className="flex h-40 items-center justify-center">

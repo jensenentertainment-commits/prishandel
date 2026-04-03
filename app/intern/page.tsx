@@ -191,7 +191,7 @@ export default function InternPage() {
                 ikke gjennomført.
               </p>
               <div className="mt-3 text-xs opacity-60">
-                P.S. {voices.ledger.ps()}
+                P.S. {voices.ledger.extra()}
               </div>
             </div>
           </div>

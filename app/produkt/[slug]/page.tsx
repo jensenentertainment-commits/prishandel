@@ -51,7 +51,7 @@ export default async function ProductPage({
               <div className="grid gap-5 md:grid-cols-[0.9fr_1.1fr] md:items-center">
                 <div className="relative flex h-64 items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-white p-4 md:h-80">
                   <span className="absolute left-3 top-3 z-10 rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-300">
-                    {p.badge}
+                    getBadge(p.now, p.before)
                   </span>
                   <ProductImage slug={p.slug} title={p.title} />
                 </div>

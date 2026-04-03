@@ -1,18 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { getVisitNumber, h32 } from "./visitSeed";
+import { useEffect, useState } from "react";
+import { bumpVisitNumber, h32 } from "./visitSeed";
+
+function normalizeKey(key: string) {
+  return key.toLowerCase().trim();
+}
 
 export function useVisitVariant(pageKey: string) {
-  const [mounted, setMounted] = useState(false);
-  const [visit, setVisit] = useState(1);
+  const key = normalizeKey(pageKey);
+
+  const [visit, setVisit] = useState<number | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    setVisit(getVisitNumber(`prh_visit_${pageKey}`));
-  }, [pageKey]);
+    setVisit(bumpVisitNumber(`prh_visit_${key}`));
+  }, [key]);
 
-  const seed = useMemo(() => h32(`${pageKey}:${visit}`), [pageKey, visit]);
+  const seed = visit === null ? 0 : h32(`${key}:${visit}`);
 
-  return { mounted, visit, seed };
+  return {
+    mounted: visit !== null,
+    visit: visit ?? 1,
+    seed,
+  };
 }

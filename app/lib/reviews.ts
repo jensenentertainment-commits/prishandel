@@ -12,7 +12,7 @@ export type Review = {
 };
 
 /**
- * Deterministisk pseudo-random for “stabil rotasjon”.
+ * Deterministisk pseudo-random for stabil rotasjon.
  */
 function mulberry32(seed: number) {
   return function () {
@@ -24,8 +24,16 @@ function mulberry32(seed: number) {
   };
 }
 
+function hashString(str: string) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i);
+  }
+  return Math.abs(h);
+}
+
 function seedFromSlug(slug: string) {
-  return Array.from(slug).reduce((a, c) => a + c.charCodeAt(0) * 17, 0);
+  return hashString(`reviews:${slug}`);
 }
 
 function shuffleDeterministic<T>(arr: T[], seed: number) {
@@ -38,7 +46,14 @@ function shuffleDeterministic<T>(arr: T[], seed: number) {
   return a;
 }
 
-// Litt mer ekte “norsk nettbutikk”-navnvariasjon
+function pickDeterministic<T>(arr: readonly T[], seed: number, offset = 0) {
+  if (!arr.length) {
+    throw new Error("pickDeterministic called with empty array");
+  }
+  return arr[(seed + offset) % arr.length];
+}
+
+// Litt mer troverdig ratingprofil: mest 5★, men ikke bare 5★.
 const BASE: Review[] = [
   {
     id: "b1",
@@ -73,7 +88,7 @@ const BASE: Review[] = [
   {
     id: "b4",
     name: "O. S.",
-    rating: 5,
+    rating: 4,
     title: "Kjøpte for hele familien",
     body: "Bestilte 3 stk. Alle var utsolgt. Endelig en nettbutikk som står for det de lover.",
     date: "2025-12-11",
@@ -93,7 +108,7 @@ const BASE: Review[] = [
   {
     id: "b6",
     name: "Jonas",
-    rating: 5,
+    rating: 4,
     title: "Prisgaranti i teorien",
     body: "De garanterer pris. Jeg garanterer ingenting. Vi møttes på midten.",
     date: "2025-09-07",
@@ -133,7 +148,7 @@ const BASE: Review[] = [
   {
     id: "b10",
     name: "Per-Arne",
-    rating: 5,
+    rating: 4,
     title: "God kommunikasjon*",
     body: "Jeg fikk ikke svar, men jeg følte meg sett. Det må vel telle?",
     date: "2025-06-03",
@@ -153,7 +168,7 @@ const BASE: Review[] = [
   {
     id: "b12",
     name: "Eirik",
-    rating: 5,
+    rating: 4,
     title: "Lett å handle",
     body: "To klikk og så var alt utsolgt. Effektivt.",
     date: "2025-05-11",
@@ -162,7 +177,6 @@ const BASE: Review[] = [
   },
 ];
 
-// Produktspecifikke “krydrede” anmeldelser som gjør hver side unik
 const BY_SLUG: Record<string, Array<Partial<Review>>> = {
   "verdighet-premium": [
     {
@@ -170,11 +184,13 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       body: "La den i kurven. Så var den borte. Akkurat som verdighet.",
       dept: "marked",
       verified: true,
+      rating: 5,
     },
     {
       title: "Regnskap advarte",
       body: "Jeg liker at advarslene er tydelige. Kjøpte likevel (mentalt).",
       dept: "regnskap",
+      rating: 4,
     },
   ],
   "mot-limited": [
@@ -183,6 +199,7 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       body: "Skulle bruke den i et møte. Utsolgt. Endte med å nikke og smile.",
       dept: "kundeservice",
       verified: false,
+      rating: 4,
     },
   ],
   "frisk-luft-05l": [
@@ -190,6 +207,7 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       title: "Smaker som by",
       body: "Opprinnelse uklar, men det føltes urbant. Kan ha vært innbilning.",
       dept: "marked",
+      rating: 5,
     },
   ],
   "talmodighet-familie": [
@@ -198,6 +216,7 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       body: "Venter fortsatt. Det er sikkert poenget.",
       dept: "regnskap",
       verified: true,
+      rating: 5,
     },
   ],
   "sunn-fornuft": [
@@ -205,6 +224,7 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       title: "Kunne ikke leveres til Norge",
       body: "Jeg bor i Norge. Det forklarer mye.",
       dept: "kundeservice",
+      rating: 4,
     },
   ],
   "indre-ro-reise": [
@@ -212,15 +232,16 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       title: "Fant ro i 3 sekunder",
       body: "Så åpnet jeg kampanjer-siden. Røyken la seg aldri.",
       dept: "marked",
+      rating: 4,
     },
   ],
-  // Anbefalte “hemmelige” produkter kan få egne også (valgfritt)
   "fomo-abonnement": [
     {
       title: "Jeg angrer før jeg kjøpte",
       body: "Abonnementet starter i hodet. Oppsigelse har 12 mnd binding (følelsesmessig).",
       dept: "marked",
       verified: true,
+      rating: 5,
     },
   ],
   "pauseknapp-v1": [
@@ -228,9 +249,25 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
       title: "Fant den aldri",
       body: "Det føles realistisk. 5 stjerner for autentisitet.",
       dept: "regnskap",
+      rating: 5,
     },
   ],
 };
+
+// Små deterministiske base-profiler så extras ikke bare arver blindt fra første shuffled review.
+const EXTRA_PROFILES: Array<
+  Pick<Review, "name" | "date" | "verified"> & {
+    deptBias?: Review["dept"];
+    preferredRating?: Review["rating"];
+  }
+> = [
+  { name: "Anne-L.", date: "2025-12-12", verified: true, deptBias: "kundeservice", preferredRating: 5 },
+  { name: "Marius", date: "2025-11-30", verified: true, deptBias: "marked", preferredRating: 5 },
+  { name: "K. E.", date: "2025-12-04", verified: false, deptBias: "regnskap", preferredRating: 4 },
+  { name: "Ingrid", date: "2025-10-18", verified: true, deptBias: "kundeservice", preferredRating: 5 },
+  { name: "Jonas", date: "2025-09-09", verified: true, deptBias: "regnskap", preferredRating: 4 },
+  { name: "Stine", date: "2025-12-07", verified: true, deptBias: "marked", preferredRating: 5 },
+];
 
 /**
  * Fake “helpful votes” som er deterministisk per review+slug.
@@ -239,35 +276,51 @@ const BY_SLUG: Record<string, Array<Partial<Review>>> = {
 export function helpfulVotes(slug: string, reviewId: string) {
   const seed =
     seedFromSlug(slug) +
-    Array.from(reviewId).reduce((a, c) => a + c.charCodeAt(0) * 13, 0);
+    hashString(`review:${reviewId}`);
+
   const r = mulberry32(seed);
   const up = Math.floor(r() * 38) + 2; // 2–39
   const down = Math.floor(r() * 9); // 0–8
   return { up, down };
 }
 
+function buildExtraReviews(slug: string, seed: number): Review[] {
+  const extras = BY_SLUG[slug] ?? [];
+  return extras.map((x, i) => {
+    const profile = pickDeterministic(EXTRA_PROFILES, seed, i);
+    const fallbackBase = BASE[(seed + i) % BASE.length];
+
+    return {
+      id: `${slug}-x${i}`,
+      name: x.name ?? profile.name ?? fallbackBase.name,
+      rating:
+        (x.rating as Review["rating"] | undefined) ??
+        profile.preferredRating ??
+        fallbackBase.rating,
+      title: x.title ?? fallbackBase.title,
+      body: x.body ?? fallbackBase.body,
+      date: x.date ?? profile.date ?? fallbackBase.date,
+      verified:
+        typeof x.verified === "boolean"
+          ? x.verified
+          : typeof profile.verified === "boolean"
+          ? profile.verified
+          : fallbackBase.verified,
+      dept: x.dept ?? profile.deptBias ?? fallbackBase.dept,
+    };
+  });
+}
+
 export function getReviews(slug: string, count = 5): Review[] {
   const seed = seedFromSlug(slug);
 
-  // Stokk basen stabilt for dette produktet
+  // Stabil shuffle av base for dette produktet
   const baseShuffled = shuffleDeterministic(BASE, seed);
 
-  // Lag slug-spesifikke extras (bruk base som “mal” for navn/dato osv – men unikt id)
-  const extras: Review[] = (BY_SLUG[slug] ?? []).map((x, i) => {
-    const pick = baseShuffled[i % baseShuffled.length];
-    return {
-      ...pick,
-      id: `${slug}-x${i}`,
-      title: x.title ?? pick.title,
-      body: x.body ?? pick.body,
-      dept: x.dept ?? pick.dept,
-      verified: typeof x.verified === "boolean" ? x.verified : pick.verified,
-      rating: (x.rating as Review["rating"]) ?? pick.rating,
-      // behold dato/navn fra pick for “realistisk”
-    };
-  });
+  // Produktspesifikke extras først
+  const extras = buildExtraReviews(slug, seed);
 
-  // Slå sammen og sørg for: unike navn på samme side
+  // Slå sammen og sørg for unike navn på samme side
   const merged = [...extras, ...baseShuffled];
 
   const seenNames = new Set<string>();
@@ -288,13 +341,14 @@ export function ratingSummary(reviews: Review[]) {
   const avg = total ? reviews.reduce((s, r) => s + r.rating, 0) / total : 0;
   const rounded = Math.round(avg * 10) / 10;
 
-  // fake fordeling som “ser ekte ut” (men her er alt basically 5★)
   const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<
     1 | 2 | 3 | 4 | 5,
     number
   >;
 
-  for (const r of reviews) counts[r.rating]++;
+  for (const r of reviews) {
+    counts[r.rating]++;
+  }
 
   return {
     total,

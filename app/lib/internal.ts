@@ -4,12 +4,15 @@ import type { ErrorCode } from "./systemErrors";
 export type SlackMsg = {
   id: string;
   ts: string; // "10:42"
-  channel: "#marked" | "#regnskap" | "#drift" | "#incident"; 
+  channel: "#marked" | "#regnskap" | "#drift" | "#incident";
   user: string;
   role: "Marked" | "Regnskap" | "Drift" | "Kundeservice";
   text: string;
   links?: { label: string; href: string }[];
-  emoji?: string; // behold emoji HER (tekst), ikke i UI
+  emoji?: string;
+  weight?: number;
+  featured?: boolean;
+  replyTo?: string;
 };
 
 export type JiraIssue = {
@@ -22,6 +25,8 @@ export type JiraIssue = {
   code?: ErrorCode;
   notes: string[];
   links?: { label: string; href: string }[];
+  weight?: number;
+  featured?: boolean;
 };
 
 const SLACK: SlackMsg[] = [
@@ -34,6 +39,8 @@ const SLACK: SlackMsg[] = [
     emoji: "🚨",
     text: "Incident trigget: E-KASSE-503. Kasse flyter som vanlig (dvs. ikke).",
     links: [{ label: "Feilside", href: "/systemfeil/E-KASSE-503" }],
+    weight: 10,
+    featured: true,
   },
   {
     id: "s2",
@@ -44,6 +51,8 @@ const SLACK: SlackMsg[] = [
     emoji: "📣",
     text: "E-KASSE-503 = mer friksjon = mer FOMO. Jeg kaller det ‘interaktiv checkout’.",
     links: [{ label: "Kampanjer", href: "/kampanjer" }],
+    weight: 8,
+    replyTo: "s1",
   },
   {
     id: "s3",
@@ -54,6 +63,8 @@ const SLACK: SlackMsg[] = [
     emoji: "🧾",
     text: "Dette er ikke interaktivt. Dette er manglende funksjon. Notert.",
     links: [{ label: "Regnskapsfører", href: "/regnskapsforer" }],
+    weight: 9,
+    replyTo: "s2",
   },
   {
     id: "s4",
@@ -64,6 +75,7 @@ const SLACK: SlackMsg[] = [
     emoji: "🤝",
     text: "Fikk 6 henvendelser. Svarte ‘midlertidig utsolgt’ som avtalt. Føler meg som en FAQ.",
     links: [{ label: "Kontakt", href: "/kontakt" }],
+    weight: 6,
   },
   {
     id: "s5",
@@ -74,6 +86,8 @@ const SLACK: SlackMsg[] = [
     emoji: "🔧",
     text: "Lagerfeed rapporterer 0 igjen. E-LAGER-0. Dette er tydeligvis ‘steady state’.",
     links: [{ label: "Feilside", href: "/systemfeil/E-LAGER-0" }],
+    weight: 9,
+    featured: true,
   },
   {
     id: "s6",
@@ -84,6 +98,7 @@ const SLACK: SlackMsg[] = [
     emoji: "⚡",
     text: "Kan vi skru på en kampanje til? Marginene føles for stabile.",
     links: [{ label: "E-MARGIN-999", href: "/systemfeil/E-MARGIN-999" }],
+    weight: 7,
   },
   {
     id: "s7",
@@ -93,6 +108,9 @@ const SLACK: SlackMsg[] = [
     role: "Regnskap",
     emoji: "🧾",
     text: "Nei.",
+    weight: 10,
+    featured: true,
+    replyTo: "s6",
   },
   {
     id: "s8",
@@ -103,6 +121,28 @@ const SLACK: SlackMsg[] = [
     emoji: "📌",
     text: "Oppsummering: Kasse feiler, lager er null, marked jubler, regnskap protesterer. Alt normalt.",
     links: [{ label: "Systemfeil-katalog", href: "/systemfeil" }],
+    weight: 8,
+  },
+  {
+    id: "s9",
+    ts: "10:13",
+    channel: "#marked",
+    user: "Marius",
+    role: "Marked",
+    emoji: "🛒",
+    text: "Kunden trenger ikke checkout hvis kunden allerede føler at varen nesten er kjøpt.",
+    weight: 5,
+  },
+  {
+    id: "s10",
+    ts: "10:16",
+    channel: "#regnskap",
+    user: "Rune",
+    role: "Regnskap",
+    emoji: "📉",
+    text: "Følelse er fortsatt ikke oppgjør.",
+    weight: 7,
+    replyTo: "s9",
   },
 ];
 
@@ -121,6 +161,8 @@ const JIRA: JiraIssue[] = [
       "Regnskap ønsker å ‘A/B-teste stillhet’.",
     ],
     links: [{ label: "Feilside", href: "/systemfeil/E-KASSE-503" }],
+    weight: 10,
+    featured: true,
   },
   {
     key: "PRIS-104",
@@ -135,6 +177,8 @@ const JIRA: JiraIssue[] = [
       "Avvist av: virkeligheten.",
     ],
     links: [{ label: "Feilside", href: "/systemfeil/E-LAGER-0" }],
+    weight: 9,
+    featured: true,
   },
   {
     key: "PRIS-108",
@@ -149,6 +193,7 @@ const JIRA: JiraIssue[] = [
       "Marked kaller det ‘brand voice’.",
     ],
     links: [{ label: "Feilside", href: "/systemfeil/E-PRIS-418" }],
+    weight: 8,
   },
   {
     key: "PRIS-112",
@@ -162,6 +207,7 @@ const JIRA: JiraIssue[] = [
       "Oppfølging: legg inn flere svar for å virke menneskelig.",
     ],
     links: [{ label: "Utsolgt", href: "/utsolgt" }],
+    weight: 5,
   },
   {
     key: "PRIS-120",
@@ -175,6 +221,22 @@ const JIRA: JiraIssue[] = [
       "Påstår at dette er ‘observability’.",
     ],
     links: [{ label: "Systemfeil", href: "/systemfeil" }],
+    weight: 6,
+  },
+  {
+    key: "PRIS-131",
+    title: "Margintrykk beskrives fortsatt som kampanjegevinst",
+    type: "Incident",
+    status: "Blocked",
+    priority: "P1",
+    owner: "Marked",
+    code: "E-MARGIN-999",
+    notes: [
+      "Marked ønsker å opprettholde språkføringen.",
+      "Regnskap ønsker å opprettholde pusten.",
+    ],
+    links: [{ label: "Systemfeil", href: "/systemfeil/E-MARGIN-999" }],
+    weight: 9,
   },
 ];
 
@@ -184,21 +246,104 @@ function hashString(s: string) {
   return Math.abs(h);
 }
 
-/** Deterministisk “dagens intern-feed” basert på path (kan også være dato) */
+function score(seed: string, value: string) {
+  return hashString(`${seed}:${value}`);
+}
+
+function rotateArray<T>(arr: T[], steps: number) {
+  if (arr.length === 0) return arr;
+  const rot = ((steps % arr.length) + arr.length) % arr.length;
+  return arr.slice(rot).concat(arr.slice(0, rot));
+}
+
+function uniqueBy<T, K>(items: T[], getKey: (item: T) => K) {
+  const seen = new Set<K>();
+  const out: T[] = [];
+  for (const item of items) {
+    const key = getKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function formatDeterministicTime(seed: string, id: string, baseHour = 9, spanMinutes = 95) {
+  const n = score(seed, id) % spanMinutes;
+  const hour = baseHour + Math.floor(n / 60);
+  const minute = n % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function withDynamicSlackTimes(seed: string, items: SlackMsg[]) {
+  return items.map((item) => ({
+    ...item,
+    ts: formatDeterministicTime(seed, item.id),
+  }));
+}
+
+function buildSlackFeed(seed: string, limit = 8) {
+  const featured = SLACK.filter((m) => m.featured);
+  const coded = SLACK.filter((m) => Boolean(m.links?.some((l) => l.href.includes("/systemfeil"))));
+  const rest = SLACK.filter((m) => !m.featured);
+
+  const sortedRest = [...rest].sort((a, b) => {
+    const aw = (b.weight ?? 0) - (a.weight ?? 0);
+    if (aw !== 0) return aw;
+    return score(seed, a.id) - score(seed, b.id);
+  });
+
+  const rotatedRest = rotateArray(sortedRest, score(seed, "slack-rot") % Math.max(sortedRest.length, 1));
+
+  const chosen = uniqueBy(
+    [
+      featured[score(seed, "featured-a") % featured.length],
+      coded[score(seed, "coded-a") % coded.length],
+      ...rotatedRest,
+    ].filter(Boolean) as SlackMsg[],
+    (m) => m.id
+  ).slice(0, limit);
+
+  return withDynamicSlackTimes(seed, chosen).sort((a, b) => a.ts.localeCompare(b.ts));
+}
+
+function buildJiraFeed(seed: string) {
+  const featured = JIRA.filter((i) => i.featured);
+  const critical = JIRA.filter(
+    (i) => i.priority === "P0" || i.status === "Blocked" || i.type === "Incident"
+  );
+  const rest = JIRA.filter((i) => !i.featured);
+
+  const sortedRest = [...rest].sort((a, b) => {
+    const weightDelta = (b.weight ?? 0) - (a.weight ?? 0);
+    if (weightDelta !== 0) return weightDelta;
+    return score(seed, a.key) - score(seed, b.key);
+  });
+
+  const rotatedRest = rotateArray(sortedRest, score(seed, "jira-rot") % Math.max(sortedRest.length, 1));
+
+  const merged = uniqueBy(
+    [
+      featured[score(seed, "jira-featured") % featured.length],
+      critical[score(seed, "jira-critical") % critical.length],
+      ...rotatedRest,
+      ...featured,
+    ].filter(Boolean) as JiraIssue[],
+    (i) => i.key
+  );
+
+  return merged;
+}
+
+/**
+ * Deterministisk intern-feed:
+ * - stabil for samme seed
+ * - føles mer kuratert enn bare rotert
+ * - viser alltid noen sentrale saker
+ */
 export function getInternalFeed(seed = "intern") {
-  const h = hashString(seed);
-  const slack = [...SLACK].sort((a, b) => (a.id > b.id ? 1 : -1));
-  const jira = [...JIRA];
-
-  // liten deterministisk rotasjon så det føles “live” men er stabilt
-  const rot = h % slack.length;
-  const rotatedSlack = slack.slice(rot).concat(slack.slice(0, rot));
-
-  const rotJ = h % jira.length;
-  const rotatedJira = jira.slice(rotJ).concat(jira.slice(0, rotJ));
-
   return {
-    slack: rotatedSlack.slice(0, 8),
-    jira: rotatedJira,
+    slack: buildSlackFeed(seed, 8),
+    jira: buildJiraFeed(seed),
   };
 }

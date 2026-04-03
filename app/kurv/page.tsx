@@ -1,5 +1,5 @@
 // app/kurv/page.tsx
-import { getAllProducts, getLeaks } from "../lib/products";
+import { getAllProducts, getLeaks, getBadge } from "../lib/products";
 import CartClient from "./CartClient";
 
 function seedSlugs() {
@@ -14,7 +14,7 @@ export default function CartPage() {
     title: p.title,
     now: p.now,
     before: p.before,
-    badge: p.badge,
+    badge: getBadge(p.now, p.before),
     note: p.note,
     leak: getLeaks(p.slug, 1)[0] ?? "—",
   }));
