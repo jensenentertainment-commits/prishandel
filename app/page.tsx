@@ -17,6 +17,7 @@ import {
 import CampaignMotor from "./components/CampaignMotor";
 import HeroLive from "./components/HeroLive";
 import ShareEntry from "./components/ShareEntry";
+import CampaignEntry from "./components/CampaignEntry";
 
 function PromoChip(props: {
   label: string;
@@ -300,7 +301,7 @@ export default function Home() {
 
         <ProductGrid limit={6} />
       </section>
-
+ <CampaignEntry />
       {/* PAYOFF LAYER */}
       <section className="border-t border-black/10 bg-[#f5f2e7]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">

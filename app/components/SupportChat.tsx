@@ -79,9 +79,7 @@ function detectKind(t: string): Kind {
     s.includes("hva gjør jeg") ||
     s.includes("hvor begynner") ||
     s.includes("hvordan fungerer dette")
-  ) {
-    return "where_start";
-  }
+  ) return "where_start";
 
   if (
     s.includes("kasse") ||
@@ -90,18 +88,14 @@ function detectKind(t: string): Kind {
     s.includes("fullfor") ||
     s.includes("betale") ||
     s.includes("kan jeg kjøpe")
-  ) {
-    return "checkout";
-  }
+  ) return "checkout";
 
   if (
     s.includes("god samvittighet") ||
     s.includes("samvittighet") ||
     s.includes("klimakompensert") ||
     s.includes("omtanke")
-  ) {
-    return "conscience";
-  }
+  ) return "conscience";
 
   if (
     s.includes("sporing") ||
@@ -109,9 +103,7 @@ function detectKind(t: string): Kind {
     s.includes("ordre") ||
     s.includes("sendingsnummer") ||
     s.includes("levert")
-  ) {
-    return "tracking";
-  }
+  ) return "tracking";
 
   if (s.includes("kupong") || s.includes("kode") || s.includes("rabattkode")) {
     return "coupon";
@@ -123,9 +115,7 @@ function detectKind(t: string): Kind {
     s.includes("billig") ||
     s.includes("tilbud") ||
     s.includes("dyrt")
-  ) {
-    return "price";
-  }
+  ) return "price";
 
   if (
     s.includes("lever") ||
@@ -133,18 +123,14 @@ function detectKind(t: string): Kind {
     s.includes("send") ||
     s.includes("post") ||
     s.includes("hente")
-  ) {
-    return "shipping";
-  }
+  ) return "shipping";
 
   if (
     s.includes("lager") ||
     s.includes("utsolgt") ||
     s.includes("på lager") ||
     s.includes("tilgjengelig")
-  ) {
-    return "stock";
-  }
+  ) return "stock";
 
   return "generic";
 }
@@ -200,11 +186,11 @@ function botLine(source: Source, text: string): Msg {
   };
 }
 
-function systemLine(text: string): Msg {
+function systemLine(text: string) {
   return botLine("system", text);
 }
 
-function advisorLine(text: string): Msg {
+function advisorLine(text: string) {
   return botLine("advisor", text);
 }
 
@@ -435,22 +421,10 @@ function typingLabel(state: ChatState) {
 }
 
 function bubbleClasses(msg: Msg) {
-  if (msg.role === "user") {
-    return "bg-black text-white rounded-br-md border-black";
-  }
-
-  if (msg.source === "system") {
-    return "bg-yellow-50 text-black rounded-bl-md border-yellow-300";
-  }
-
-  if (msg.source === "ledger") {
-    return "bg-white text-black rounded-bl-md border-black/15";
-  }
-
-  if (msg.source === "advisor") {
-    return "bg-neutral-100 text-black rounded-bl-md border-black/10";
-  }
-
+  if (msg.role === "user") return "bg-black text-white rounded-br-md border-black";
+  if (msg.source === "system") return "bg-yellow-50 text-black rounded-bl-md border-yellow-300";
+  if (msg.source === "ledger") return "bg-white text-black rounded-bl-md border-black/15";
+  if (msg.source === "advisor") return "bg-neutral-100 text-black rounded-bl-md border-black/10";
   return "bg-red-50 text-black rounded-bl-md border-red-200";
 }
 
@@ -569,7 +543,6 @@ export default function SupportChat() {
   }, [open, state.msgs, typing]);
 
   const typingText = useMemo(() => typingLabel(state), [state]);
-
   const marketLabel = classifyPressureLabel(state.marketPressure);
   const ledgerLabel = classifyPressureLabel(state.ledgerPressure);
 
@@ -708,9 +681,7 @@ export default function SupportChat() {
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[88%] rounded-2xl border px-3 py-2 text-sm ${bubbleClasses(
-                          msg
-                        )}`}
+                        className={`max-w-[88%] rounded-2xl border px-3 py-2 text-sm ${bubbleClasses(msg)}`}
                       >
                         <div className="mb-1 text-[10px] font-black uppercase tracking-wide opacity-55">
                           {sourceLabel(msg)}
