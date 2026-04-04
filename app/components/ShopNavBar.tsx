@@ -315,7 +315,7 @@ export default function ShopNavbar() {
 
           <a href="/" className="group flex shrink-0 items-center gap-2">
             <div className="hidden leading-tight sm:block">
-              <img src="/logo.PNG" alt="Prishandel" className="h-8" />
+              <img src="/logo.svg" alt="Prishandel" className="h-8" />
               <div className="-mt-0.5 text-[11px] opacity-70">
                 Alltid kampanje • Alltid utsolgt
               </div>
