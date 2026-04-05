@@ -31,12 +31,6 @@ function prng(seed: number) {
   };
 }
 
-function makeSessionSeed(extra: string) {
-  const now = new Date();
-  const cycle = Math.floor(now.getTime() / (1000 * 60 * 41));
-  return hashString(`cart|${cycle}|${extra}`);
-}
-
 function pick<T>(arr: readonly T[], rnd: () => number) {
   return arr[Math.floor(rnd() * arr.length)];
 }
@@ -49,50 +43,38 @@ function getBadge(now: number, before: number) {
   return "Aggressivt prisfall";
 }
 
-const HEADER_SUBLINES = [
-  "Systemet registrerer tilstedeværelse.",
-  "Kurven holdes åpen inntil videre.",
-  "Kjøpsintensjon er observert.",
-  "Videre behandling avhenger av mot og metode.",
-] as const;
-
 const EMPTY_LINES = [
-  "Kurven er tom. Systemet har ingen innvendinger.",
+  "Ingen kjøpsforsøk registrert ennå.",
+  "Kurven er tom. Systemet avventer initiativ.",
   "Ingen varer registrert. Markedet reagerer moderat.",
-  "Tom kurv. Dette tolkes som tilbakeholdenhet.",
-  "Ingen linjer. Ingen fremdrift. Foreløpig.",
 ] as const;
 
 const CONTINUE_LINKS = [
   "Fortsett å handle →",
   "Gå tilbake til varene →",
-  "Returner til butikken →",
-  "Fortsett behandlingen →",
+  "Se flere varer →",
 ] as const;
 
 const PAYMENT_LINES = [
-  "Betaling: behandles ved behov • Trygg handel: ikke bestridt",
-  "Betaling: tilgjengelig i prinsippet • Trygg handel: løpende vurdert",
-  "Betaling: registrert • Trygg handel: uavklart",
-  "Betaling: mulig • Trygg handel: utilstrekkelig dokumentert",
+  "Betaling, lager og levering behandles separat.",
+  "Betaling er mulig. Utfall er ikke nødvendigvis samstemt.",
+  "Systemet aksepterer fremdrift uten å love sammenheng.",
 ] as const;
 
 const CART_FOOTERS = [
   "📣 Marked: “Kurv øker sannsynlighet.” 🧾 Regnskap: “Kurv øker spørsmål.”",
   "📣 Marked: “Legg til mer.” 🧾 Regnskap: “Legg til grunnlag.”",
-  "📣 Marked: “Dette kan fortsatt bli noe.” 🧾 Regnskap: “Det er nettopp risikoen.”",
   "📣 Marked: “Fremdrift er fremdrift.” 🧾 Regnskap: “Ikke all fremdrift er god.”",
 ] as const;
 
 const STOCK_LINES = [
-  "Lagerstatus: uavklart • Levering: ubestemt",
-  "Lagerstatus: ikke bekreftet • Levering: til vurdering",
-  "Lagerstatus: teoretisk • Levering: fortsatt åpen",
+  "Lagerstatus: uavklart",
+  "Lagerstatus: ikke bekreftet",
+  "Lagerstatus: teoretisk",
 ] as const;
 
 const SHIPPING_ZERO_LINES = [
   "0,- (midlertidig)",
-  "0,- (forutsatt forståelse)",
   "0,- (registrert)",
   "0,- (inntil videre)",
 ] as const;
@@ -105,19 +87,11 @@ function getCartStatus(itemCount: number, total: number) {
   return "Status uavklart";
 }
 
-function getHeaderLine(itemCount: number) {
-  if (itemCount === 0) return "Du har 0 varer i kurven.";
-  if (itemCount === 1) return "Du har 1 vare i kurven.";
-  return `Du har ${itemCount} varer i kurven.`;
-}
-
-function getHeaderSecondLine(itemCount: number, total: number, fallback: string) {
-  if (itemCount === 0) return fallback;
-  if (total >= 1000) {
-    return "Dette kan påvirke systemet. Systemet foretrekker begrenset påvirkning.";
-  }
-  if (itemCount >= 3) return "Saken har utviklet seg. Utviklingen er notert.";
-  return fallback;
+function getHeaderLine(itemCount: number, total: number) {
+  if (itemCount === 0) return "Ingen aktive kjøpsforsøk.";
+  if (itemCount === 1) return "1 vare registrert i kurven.";
+  if (total >= 1000) return `${itemCount} varer registrert. Dette kan påvirke systemet.`;
+  return `${itemCount} varer registrert i kurven.`;
 }
 
 function getAvailabilityLabel(itemCount: number, total: number) {
@@ -174,21 +148,16 @@ export default function CartClient({ products }: { products: Product[] }) {
   const total = subtotal + shipping - discount;
   const status = getCartStatus(itemCount, total);
 
-  const pageSeed = useMemo(
-    () => makeSessionSeed(`${itemCount}|${total}|${status}`),
-    [itemCount, total, status]
-  );
+  const seed = useMemo(() => hashString(`${itemCount}|${total}|${status}`), [itemCount, total, status]);
+  const rndA = useMemo(() => prng(seed + 11), [seed]);
+  const rndB = useMemo(() => prng(seed + 29), [seed]);
 
-  const headerRnd = useMemo(() => prng(pageSeed + 11), [pageSeed]);
-  const footerRnd = useMemo(() => prng(pageSeed + 29), [pageSeed]);
-  const uiRnd = useMemo(() => prng(pageSeed + 47), [pageSeed]);
+  const emptyLine = useMemo(() => pick(EMPTY_LINES, rndA), [rndA]);
+  const continueLabel = useMemo(() => pick(CONTINUE_LINKS, rndA), [rndA]);
+  const paymentLine = useMemo(() => pick(PAYMENT_LINES, rndB), [rndB]);
+  const cartFooter = useMemo(() => pick(CART_FOOTERS, rndB), [rndB]);
+  const shippingZeroLine = useMemo(() => pick(SHIPPING_ZERO_LINES, rndA), [rndA]);
 
-  const headerSub = useMemo(() => pick(HEADER_SUBLINES, headerRnd), [headerRnd]);
-  const emptyLine = useMemo(() => pick(EMPTY_LINES, headerRnd), [headerRnd]);
-  const continueLabel = useMemo(() => pick(CONTINUE_LINKS, uiRnd), [uiRnd]);
-  const paymentLine = useMemo(() => pick(PAYMENT_LINES, footerRnd), [footerRnd]);
-  const cartFooter = useMemo(() => pick(CART_FOOTERS, footerRnd), [footerRnd]);
-  const shippingZeroLine = useMemo(() => pick(SHIPPING_ZERO_LINES, uiRnd), [uiRnd]);
   const availabilityLabel = useMemo(
     () => getAvailabilityLabel(itemCount, total),
     [itemCount, total]
@@ -204,15 +173,10 @@ export default function CartClient({ products }: { products: Product[] }) {
     [itemCount, total]
   );
 
-  const topLine = useMemo(() => getHeaderLine(itemCount), [itemCount]);
-  const topSecondLine = useMemo(
-    () => getHeaderSecondLine(itemCount, total, headerSub),
-    [itemCount, total, headerSub]
-  );
+  const headerLine = useMemo(() => getHeaderLine(itemCount, total), [itemCount, total]);
 
   useEffect(() => {
     const prev = prevStatusRef.current;
-
     if (prev === null) {
       prevStatusRef.current = status;
       return;
@@ -231,9 +195,9 @@ export default function CartClient({ products }: { products: Product[] }) {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-black sm:text-4xl">Handlekurv</h1>
+          <h1 className="text-3xl font-black sm:text-4xl">Kurv under behandling</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed opacity-70">
-            {topLine} {topSecondLine}
+            {headerLine}
           </p>
         </div>
 
@@ -247,7 +211,7 @@ export default function CartClient({ products }: { products: Product[] }) {
           <div className="border-b border-black/10 px-4 py-4 sm:px-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="font-black">Varer</div>
+                <div className="font-black">Registrerte varer</div>
                 <div className="mt-1 text-xs font-semibold opacity-60">
                   {availabilityLabel} • {pressureLabel}
                 </div>
@@ -268,16 +232,8 @@ export default function CartClient({ products }: { products: Product[] }) {
           ) : (
             <div className="divide-y divide-black/10">
               {linesWithProduct.map(({ p, qty }) => {
-                const lineSeed = makeSessionSeed(`${p.slug}|${qty}`);
-                const lineRnd = prng(lineSeed);
-
+                const lineRnd = prng(hashString(`${p.slug}|${qty}`));
                 const stockLine = pick(STOCK_LINES, lineRnd);
-                const lineState =
-                  qty >= 3
-                    ? "Linjen vurderes fortløpende."
-                    : qty === 2
-                    ? "Linjen er registrert med moderat friksjon."
-                    : "Linjen er registrert.";
 
                 return (
                   <div key={p.slug} className="p-4 sm:p-6">
@@ -303,8 +259,9 @@ export default function CartClient({ products }: { products: Product[] }) {
                             <div className="mt-1 text-xs leading-relaxed opacity-70">
                               {stockLine}
                             </div>
-                            <div className="mt-1 text-[11px] font-semibold opacity-60">
-                              SYS: {p.leak}
+
+                            <div className="mt-2 text-xs leading-relaxed opacity-65">
+                              {p.note}
                             </div>
                           </div>
 
@@ -314,6 +271,9 @@ export default function CartClient({ products }: { products: Product[] }) {
                             </div>
                             <div className="text-lg font-black text-red-600">
                               {p.now},-
+                            </div>
+                            <div className="mt-1 text-[11px] font-semibold opacity-55">
+                              SYS: {p.leak}
                             </div>
                           </div>
                         </div>
@@ -357,8 +317,6 @@ export default function CartClient({ products }: { products: Product[] }) {
                             {getBadge(p.now, p.before)}
                           </span>
 
-                          <span className="text-xs opacity-60">{lineState}</span>
-
                           <button
                             type="button"
                             onClick={() => {
@@ -370,8 +328,6 @@ export default function CartClient({ products }: { products: Product[] }) {
                             Fjern linje
                           </button>
                         </div>
-
-                        <div className="mt-3 text-xs leading-relaxed opacity-70">{p.note}</div>
                       </div>
                     </div>
                   </div>

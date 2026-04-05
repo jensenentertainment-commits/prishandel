@@ -205,16 +205,16 @@ function getSteps(total: number, itemsCount: number, conscience: boolean): Step[
       title: "Initierer ordrebehandling",
       body: "Bekrefter kjøpsintensjon og grunnleggende betalingsvilje.",
       icon: CreditCard,
-      ms: 700,
+      ms: 650,
     },
     ...(conscience
       ? [
           {
             key: "conscience" as const,
             title: "Registrerer god samvittighet",
-            body: "Emosjonell avlastning knyttes til ordren uten å påvirke varegrunnlaget.",
+            body: "Emosjonell avlastning loggføres uten å påvirke varegrunnlaget.",
             icon: HeartHandshake,
-            ms: 820,
+            ms: 760,
           },
         ]
       : []),
@@ -223,42 +223,42 @@ function getSteps(total: number, itemsCount: number, conscience: boolean): Step[
       title: "Validerer betalingsgrunnlag",
       body: "Betalingsvilje autentiseres. Fullføring forblir åpen.",
       icon: CircleDashed,
-      ms: 850,
+      ms: 780,
     },
     {
       key: "inventory",
       title: "Validerer lagerstatus",
       body: "Lagerstatus forblir uavklart, men prosessen fortsetter av hensyn til moment.",
       icon: ShieldCheck,
-      ms: highPressure ? 1050 : 900,
+      ms: highPressure ? 980 : 860,
     },
     {
       key: "freight",
       title: "Avklarer fraktforutsetninger",
       body: "Leveringstid settes til ubestemt og behandles som en oppdatering.",
       icon: Truck,
-      ms: 760,
+      ms: 720,
     },
     {
       key: "finance",
       title: "Avstemmer med regnskap",
       body: "Økonomien varsles om kjøpsforsøket og responderer kontrollert.",
       icon: Receipt,
-      ms: highPressure ? 1200 : 1000,
+      ms: highPressure ? 1120 : 920,
     },
     {
       key: "reality",
       title: "Kontakter virkeligheten",
       body: "Virkeligheten svarer ikke tydelig, men innvendingene registreres.",
       icon: TriangleAlert,
-      ms: 950,
+      ms: 860,
     },
     {
       key: "decision",
       title: "Finaliserer behandling",
       body: "Ordren nummereres, vurderes og mister gradvis støtte.",
       icon: Zap,
-      ms: 880,
+      ms: 820,
     },
   ];
 }
@@ -268,17 +268,17 @@ function getInitialProgressFor(step: StepKey) {
     case "init":
       return 8;
     case "conscience":
-      return 18;
+      return 16;
     case "payment":
       return 28;
     case "inventory":
-      return 48;
+      return 46;
     case "freight":
-      return 64;
+      return 61;
     case "finance":
-      return 79;
+      return 76;
     case "reality":
-      return 72;
+      return 87;
     case "decision":
       return 95;
     default:
@@ -366,7 +366,7 @@ export default function CheckoutGate(props: { total: number; itemsCount: number 
       const timer = window.setTimeout(() => {
         setRunning(false);
         setResultVisible(true);
-      }, 950);
+      }, 800);
 
       return () => window.clearTimeout(timer);
     }
@@ -514,7 +514,11 @@ export default function CheckoutGate(props: { total: number; itemsCount: number 
                           value={conscience ? `+${consciencePrice},-` : "ikke lagt til"}
                         />
                         <div className="border-t border-black/10 pt-2">
-                          <MoneyRow label="Sum å forholde seg til" value={`${displayTotal},-`} strong />
+                          <MoneyRow
+                            label="Sum å forholde seg til"
+                            value={`${displayTotal},-`}
+                            strong
+                          />
                         </div>
                       </div>
                     </div>
@@ -588,7 +592,7 @@ export default function CheckoutGate(props: { total: number; itemsCount: number 
                         </div>
                         <div className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold opacity-70">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          live
+                          behandling
                         </div>
                       </div>
 
@@ -600,7 +604,7 @@ export default function CheckoutGate(props: { total: number; itemsCount: number 
                       </div>
 
                       <div className="mt-2 flex items-center justify-between text-[11px] uppercase tracking-wide opacity-55">
-                        <span>Behandling</span>
+                        <span>Ordrebehandling</span>
                         <span>{Math.round(progress)}%</span>
                       </div>
 

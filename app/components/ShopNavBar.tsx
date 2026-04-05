@@ -17,6 +17,7 @@ import {
   Receipt,
   Megaphone,
   Zap,
+  Search,
 } from "lucide-react";
 import CartNavItem from "./cart/CartNavItem";
 
@@ -38,30 +39,30 @@ const NAV_SUGGESTIONS = [
 
 const LOGIN_PITCHES = [
   {
-    title: "Innlogging er midlertidig utsolgt",
-    body: "Men kampanjene er i full drift. Du trenger ikke konto for å bli fristet.",
-    cta: "Se kampanjer →",
-    href: "/kampanjer",
+    title: "Identifisering er midlertidig utsolgt",
+    body: "Du trenger ikke konto for å bli fristet. Kampanjen er allerede operativ.",
+    cta: "Se varer under press →",
+    href: "/butikk",
     badge: "UTSOLGT",
   },
   {
-    title: "Logg inn (teoretisk)",
-    body: "Systemet vurderer innlogging. Markedsavdelingen vurderer flere tilbud.",
-    cta: "Se tilbud →",
-    href: "/butikk",
+    title: "Identitet vurderes løpende",
+    body: "Systemet vurderer hvem du er. Markedet vurderer kun om du kan fristes.",
+    cta: "Se kampanjer →",
+    href: "/kampanjer",
     badge: "PÅGÅR",
   },
   {
-    title: "Konto? Vi har kampanje",
-    body: "Opprett konto for å få fordeler du allerede har. (Mentalt.)",
-    cta: "Døgnets deals →",
-    href: "/kampanjer",
-    badge: "KUPP",
+    title: "Konto? Vi prioriterer prispress",
+    body: "Autentisering kommer etter behov. Behov er ikke endelig kartlagt.",
+    cta: "Åpne butikken →",
+    href: "/butikk",
+    badge: "LIVE",
   },
   {
     title: "Tilkobling mislyktes (praktisk)",
-    body: "Prøv igjen, eller gå direkte til noe som er utsolgt med én gang.",
-    cta: "Utsolgt →",
+    body: "Du kan gå videre uten konto og bli avvist senere i prosessen.",
+    cta: "Se utsolgt →",
     href: "/utsolgt",
     badge: "0 LAGER",
   },
@@ -69,7 +70,7 @@ const LOGIN_PITCHES = [
 
 const CATS = [
   { label: "Produkter", href: "/butikk", pill: "bg-red-600 text-white", pillText: "SALG" },
-  { label: "Kampanjer", href: "/kampanjer", pill: "bg-yellow-300 text-black", pillText: "NY" },
+  { label: "Kampanjer", href: "/kampanjer", pill: "bg-yellow-300 text-black", pillText: "AKTIV" },
   { label: "Utsolgt", href: "/utsolgt", pill: "bg-black text-white", pillText: "100%" },
   { label: "Regnskapsfører", href: "/regnskapsforer", pill: "bg-green-600 text-white", pillText: "LIVE" },
 ] as const;
@@ -82,9 +83,9 @@ const MENU_SALES = [
 ] as const;
 
 const SESSION_KEYS = {
-  navSeed: "prh_nav_seed_v3",
-  loginPitchBase: "prh_login_pitch_base_v3",
-  menuTease: "prh_menu_tease_v3",
+  navSeed: "prh_nav_seed_v4",
+  loginPitchBase: "prh_login_pitch_base_v4",
+  menuTease: "prh_menu_tease_v4",
 } as const;
 
 type Kind = "generic" | "price" | "shipping" | "coupon" | "stock";
@@ -147,8 +148,8 @@ function buildFightKind(seed: string, tick: number): Kind {
 function normalizeFight(input: unknown): FightItem[] {
   if (!Array.isArray(input)) {
     return [
-      { text: "📣 Marked: Alltid kampanje." },
-      { text: "🧾 Regnskap: Alltid bekymret." },
+      { text: "📣 Marked: Alt er på tilbud." },
+      { text: "🧾 Regnskap: Ingenting er avklart." },
     ];
   }
 
@@ -170,8 +171,8 @@ function normalizeFight(input: unknown): FightItem[] {
   if (normalized.length >= 2) return normalized.slice(0, 2);
 
   return [
-    { text: normalized[0]?.text ?? "📣 Marked: Alltid kampanje." },
-    { text: normalized[1]?.text ?? "🧾 Regnskap: Alltid bekymret." },
+    { text: normalized[0]?.text ?? "📣 Marked: Alt er på tilbud." },
+    { text: normalized[1]?.text ?? "🧾 Regnskap: Ingenting er avklart." },
   ];
 }
 
@@ -239,8 +240,8 @@ export default function ShopNavbar() {
   const fight = useMemo<FightItem[]>(() => {
     if (!mounted) {
       return [
-        { text: "📣 Marked: Alltid kampanje." },
-        { text: "🧾 Regnskap: Alltid bekymret." },
+        { text: "📣 Marked: Alt er på tilbud." },
+        { text: "🧾 Regnskap: Ingenting er avklart." },
       ];
     }
 
@@ -317,7 +318,7 @@ export default function ShopNavbar() {
             <div className="hidden leading-tight sm:block">
               <img src="/logo.svg" alt="Prishandel" className="h-8" />
               <div className="-mt-0.5 text-[11px] opacity-70">
-                Alltid kampanje • Alltid utsolgt
+                Alltid kampanje • Alltid usikkert
               </div>
             </div>
           </a>
@@ -341,9 +342,9 @@ export default function ShopNavbar() {
             <button
               onClick={openLogin}
               className="hidden rounded-lg border border-black/20 px-3 py-2 text-sm font-black hover:bg-black/5 sm:inline-flex"
-              title="Logg inn"
+              title="Identifiser deg"
             >
-              Logg inn
+              Identifiser deg
             </button>
 
             <CartNavItem />
@@ -374,28 +375,26 @@ export default function ShopNavbar() {
 }
 
 function NavFightBar(props: { fight: FightItem[] }) {
-  const first = props.fight[0] ?? { text: "📣 Marked: Alltid kampanje." };
-  const second = props.fight[1] ?? { text: "🧾 Regnskap: Alltid bekymret." };
+  const first = props.fight[0] ?? { text: "📣 Marked: Alt er på tilbud." };
+  const second = props.fight[1] ?? { text: "🧾 Regnskap: Ingenting er avklart." };
 
   return (
     <div className="border-b border-black/10 bg-yellow-300 text-black">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1.5">
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 truncate text-xs font-black">
-            <Icon icon={fightIconFor(first.text)} intent="active" />
+          <div className="truncate text-xs font-black">
             {stripLeadEmoji(first.text)}
           </div>
-          <div className="inline-flex items-center gap-2 truncate text-[11px] font-semibold opacity-70">
-            <Icon icon={fightIconFor(second.text)} intent="passive" />
+          <div className="truncate text-[11px] font-semibold opacity-70">
             {stripLeadEmoji(second.text)}
           </div>
         </div>
 
         <a
-          href="/kampanjer"
+          href="/butikk"
           className="shrink-0 rounded bg-red-600 px-2.5 py-1 text-xs font-black text-white hover:opacity-90"
         >
-          KAMPANJER →
+          PRØV Å HANDLE →
         </a>
       </div>
     </div>
@@ -427,22 +426,25 @@ const NavSearch = forwardRef<
 
   return (
     <div ref={ref} className="relative flex-1">
-      <input
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setSuggestOpen(true);
-        }}
-        onFocus={() => setSuggestOpen(true)}
-        onKeyDown={onKeyDown}
-        className="w-full rounded-lg border border-black/15 bg-white py-2 pl-3 pr-16 text-sm font-semibold placeholder:opacity-60"
-        placeholder="Søk i butikken…"
-      />
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-45" />
+        <input
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setSuggestOpen(true);
+          }}
+          onFocus={() => setSuggestOpen(true)}
+          onKeyDown={onKeyDown}
+          className="w-full rounded-lg border border-black/15 bg-white py-2 pl-9 pr-16 text-sm font-semibold placeholder:opacity-60"
+          placeholder="Søk i systemet…"
+        />
 
-      <div className="absolute right-2 top-1.5 flex items-center gap-2">
-        <span className="rounded border border-black/10 bg-yellow-300 px-2 py-0.5 text-[10px] font-black">
-          -90%*
-        </span>
+        <div className="absolute right-2 top-1.5 flex items-center gap-2">
+          <span className="rounded border border-black/10 bg-yellow-300 px-2 py-0.5 text-[10px] font-black">
+            -90%*
+          </span>
+        </div>
       </div>
 
       {suggestOpen && suggestions.length > 0 && (
@@ -458,7 +460,7 @@ const NavSearch = forwardRef<
             </button>
           ))}
           <div className="border-t border-black/10 px-4 py-2 text-[11px] font-semibold opacity-50">
-            Forslag generert av systemet
+            Forslag generert under aktiv påvirkning
           </div>
         </div>
       )}
@@ -488,15 +490,15 @@ function NavCategories() {
         <div className="ml-auto hidden items-center gap-2 text-xs font-semibold opacity-80 md:flex">
           <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
             <Icon icon={Truck} intent="passive" />
-            Gratis frakt*
+            Frakt vurderes
           </span>
           <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
             <Icon icon={CreditCard} intent="passive" />
-            Vipps/Klarna*
+            Betaling mulig*
           </span>
           <span className="inline-flex items-center gap-1.5 rounded border border-black/10 bg-white px-2 py-1">
             <Icon icon={Receipt} intent="passive" />
-            Prisgaranti*
+            Prisnivå aktivt
           </span>
         </div>
       </div>
@@ -527,8 +529,8 @@ function MobileMenuDrawer(props: {
               P
             </div>
             <div className="leading-tight">
-              <div className="font-black">Meny</div>
-              <div className="text-[11px] opacity-70">Baconburger-utgave</div>
+              <div className="font-black">Systemmeny</div>
+              <div className="text-[11px] opacity-70">Navigasjon under press</div>
             </div>
           </div>
 
@@ -543,26 +545,26 @@ function MobileMenuDrawer(props: {
         <div className="space-y-3 px-4 py-4">
           <div className="rounded-xl border border-black/10 bg-yellow-300 p-4">
             <div className="inline-block rounded bg-black px-2 py-1 text-xs font-black text-yellow-300">
-              KAMPANJE
+              AKTIV KAMPANJE
             </div>
             <div className="mt-2 font-black">{props.menuTease}</div>
             <div className="mt-1 text-xs font-semibold opacity-80">
-              Slutter snart* • låst per økt
+              Varighet uklar • tilgang løpende vurdert
             </div>
             <div className="mt-3 flex gap-2">
               <a
-                href="/kampanjer"
+                href="/butikk"
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-black text-white hover:opacity-90"
                 onClick={props.onClose}
               >
-                Se kampanjer →
+                Prøv å handle →
               </a>
               <a
-                href="/butikk"
+                href="/kampanjer"
                 className="rounded-lg border border-black/20 bg-white px-4 py-2 text-sm font-black text-black hover:bg-black/5"
                 onClick={props.onClose}
               >
-                Produkter
+                Kampanjer
               </a>
             </div>
           </div>
@@ -586,16 +588,16 @@ function MobileMenuDrawer(props: {
           </div>
 
           <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
-            <div className="font-black">Konto</div>
+            <div className="font-black">Identifisering</div>
             <p className="mt-1 text-sm opacity-80">
-              Innlogging er midlertidig utsolgt, men vi kan late som.
+              Innlogging er ikke stengt, bare ikke prioritert.
             </p>
             <div className="mt-3 flex gap-2">
               <button
                 onClick={props.onOpenLogin}
                 className="rounded-lg bg-black px-4 py-2 text-sm font-black text-white hover:opacity-90"
               >
-                Logg inn
+                Identifiser deg
               </button>
               <a
                 href="/utsolgt"
@@ -606,25 +608,25 @@ function MobileMenuDrawer(props: {
               </a>
             </div>
             <div className="mt-2 text-xs opacity-60">
-              *konto kan avvike fra virkeligheten.
+              *identitet kan avvike fra kjøpsforsøk.
             </div>
           </div>
 
           <div className="flex flex-col gap-1 text-xs opacity-60">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5">
-                <Icon icon={Truck} intent="passive" /> Gratis frakt*
+                <Icon icon={Truck} intent="passive" /> Frakt vurderes
               </span>
               <span className="opacity-60">•</span>
               <span className="inline-flex items-center gap-1.5">
-                <Icon icon={CreditCard} intent="passive" /> Vipps/Klarna*
+                <Icon icon={CreditCard} intent="passive" /> Betaling mulig*
               </span>
               <span className="opacity-60">•</span>
               <span className="inline-flex items-center gap-1.5">
-                <Icon icon={Receipt} intent="passive" /> Prisgaranti*
+                <Icon icon={Receipt} intent="passive" /> Prisnivå aktivt
               </span>
             </div>
-            <div>*gjelder der det passer oss</div>
+            <div>*gjelder der systemet tillater det</div>
           </div>
         </div>
       </aside>
@@ -651,9 +653,9 @@ function LoginModal(props: {
       <div className="relative w-[520px] max-w-[96vw] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
         <div className="flex items-center justify-between gap-3 bg-red-600 px-5 py-4 text-white">
           <div>
-            <div className="font-black leading-tight">Logg inn</div>
+            <div className="font-black leading-tight">Identifiser deg</div>
             <div className="text-xs opacity-90">
-              Autentisering: midlertidig utsolgt
+              Autentisering: ikke endelig tilgjengelig
             </div>
           </div>
           <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">
@@ -668,7 +670,7 @@ function LoginModal(props: {
           </div>
 
           <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
-            <div className="text-sm font-black">Innlogging (demo)</div>
+            <div className="text-sm font-black">Identifisering (demo)</div>
             <div className="mt-3 grid gap-2">
               <input
                 disabled
@@ -684,11 +686,11 @@ function LoginModal(props: {
                 disabled
                 className="cursor-not-allowed rounded-lg bg-black py-3 font-black text-white opacity-40"
               >
-                LOGG INN (UTSOLGT)
+                FORTSETT (UTILGJENGELIG)
               </button>
             </div>
             <div className="mt-2 text-xs opacity-60">
-              Ved å logge inn godtar du at alt kan være utsolgt.
+              Ved å identifisere deg godtar du at tilgang og verdi behandles separat.
             </div>
           </div>
 
@@ -714,7 +716,7 @@ function LoginModal(props: {
           </div>
 
           <div className="text-xs opacity-60">
-            *Innlogging kan avvike fra virkeligheten.
+            *identifisering kan avvike fra faktisk adgang.
           </div>
         </div>
       </div>

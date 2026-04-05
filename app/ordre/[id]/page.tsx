@@ -343,7 +343,7 @@ export default async function OrderPage({
       <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
         <div className="bg-black px-5 py-5 text-white sm:px-6 sm:py-6">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-yellow-300">
-            Ordre registrert
+            Behandlingsresultat
           </div>
 
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -372,6 +372,9 @@ export default async function OrderPage({
             <span className="rounded bg-white/10 px-2 py-1 text-white">
               {order.code}
             </span>
+            <span className="rounded bg-white/10 px-2 py-1 text-white">
+              {order.processingLevel}
+            </span>
             {order.conscience && (
               <span className="rounded bg-yellow-300 px-2 py-1 text-black">
                 God samvittighet registrert
@@ -381,23 +384,32 @@ export default async function OrderPage({
         </div>
 
         <div className="space-y-6 p-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MetricCard
-              label="Prispress"
-              value={`${order.metrics.pressure}%`}
-              note="Opprettholdt"
-            />
-            <MetricCard
-              label="Intern støtte"
-              value={`${order.metrics.support}%`}
-              note="Begrenset"
-            />
-            <MetricCard
-              label="Faktisk virkelighet"
-              value={`${order.metrics.reality}%`}
-              note="Svak"
-            />
-          </div>
+          <section className="rounded-2xl border border-black/10 bg-yellow-50 p-4 sm:p-5">
+            <div className="text-[11px] font-black uppercase tracking-wide opacity-60">
+              Konklusjon
+            </div>
+            <div className="mt-2 text-xl font-black leading-tight sm:text-2xl">
+              {order.finalNote}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <MetricCard
+                label="Prispress"
+                value={`${order.metrics.pressure}%`}
+                note="Opprettholdt"
+              />
+              <MetricCard
+                label="Intern støtte"
+                value={`${order.metrics.support}%`}
+                note="Begrenset"
+              />
+              <MetricCard
+                label="Faktisk virkelighet"
+                value={`${order.metrics.reality}%`}
+                note="Svak"
+              />
+            </div>
+          </section>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
@@ -443,10 +455,7 @@ export default async function OrderPage({
 
           <section className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
             <div className="text-xs font-black uppercase tracking-wide opacity-60">
-              Konklusjon
-            </div>
-            <div className="mt-2 text-lg font-black leading-tight sm:text-xl">
-              {order.finalNote}
+              Intern vurdering
             </div>
 
             <div className="mt-4 rounded-2xl border border-black/10 bg-black/[0.03] p-4 text-sm leading-relaxed">
@@ -479,16 +488,14 @@ export default async function OrderPage({
 
           <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
             <div className="text-xs font-black uppercase tracking-wide opacity-60">
-              Hva skjer nå?
+              Videre løp
             </div>
             <div className="mt-3 space-y-2 text-sm leading-relaxed opacity-80">
               <p>
                 Ordren din er registrert i systemet og vurderes fortløpende.
                 Vurderingen foretas administrativt i samråd med tilgjengelige forhold.
               </p>
-              <p>
-                Det kreves ingen handling fra din side på nåværende tidspunkt.
-              </p>
+              <p>Det kreves ingen handling fra din side på nåværende tidspunkt.</p>
               {order.conscience && (
                 <p>
                   Tillegget “god samvittighet” er registrert separat og påvirker ikke

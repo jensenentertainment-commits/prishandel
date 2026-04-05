@@ -176,15 +176,7 @@ function ProductCard({ p }: { p: Product }) {
         </div>
 
         <div className="grid gap-3">
-          <div className="rounded-2xl border border-black/10 bg-[#f7f4ea] p-3">
-            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-              <Icon icon={Receipt} />
-              Regnskap
-            </div>
-            <div className="mt-1 text-sm leading-relaxed opacity-80">
-              {accountingText}
-            </div>
-          </div>
+     
 
           <div className="rounded-2xl border border-black/10 bg-white p-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -233,13 +225,7 @@ function ProductCard({ p }: { p: Product }) {
           </div>
 
           <div className="rounded-2xl border border-black/10 bg-neutral-50 p-3">
-            <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-70">
-              <Icon icon={Siren} />
-              Salgssignal
-            </div>
-            <div className="mt-1 text-sm leading-relaxed opacity-80">
-              Produktet anses som aktuelt så lenge prisen kan opprettholdes og lageret unngår avklaring.
-            </div>
+            
           </div>
         </div>
       </div>

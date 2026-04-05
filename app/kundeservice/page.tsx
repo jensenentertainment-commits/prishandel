@@ -44,7 +44,7 @@ const TOP_FAQ = [
     q: "Hvor er pakken min?",
     a: "Forsendelsen kan være registrert, forsinket, videresendt eller under vurdering samtidig. Se sporingsstatus for gjeldende versjon av sannheten.",
     cta: "Spor pakke →",
-    href: "/sporing/PH-000000",
+    href: "/sporing/ORD-PH-000000",
   },
   {
     q: "Når kommer varene inn igjen?",
@@ -61,31 +61,80 @@ const TOP_FAQ = [
   {
     q: "Hvordan kontakter jeg dere?",
     a: "Henvendelser behandles fortløpende. Svartid påvirkes av kapasitet, kampanjenivå og øvrige forhold som måtte oppstå.",
-    cta: "Se kontaktinfo →",
+    cta: "Se kontaktvei →",
     href: "/kontakt",
   },
 ] as const;
 
+function StatusChip(props: { children: React.ReactNode; tone?: "black" | "red" | "yellow" | "white" }) {
+  const cls =
+    props.tone === "red"
+      ? "bg-red-600 text-white border-red-700/30"
+      : props.tone === "yellow"
+      ? "bg-yellow-300 text-black border-black/10"
+      : props.tone === "black"
+      ? "bg-black text-yellow-300 border-black"
+      : "bg-white text-black border-black/12";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${cls}`}
+    >
+      {props.children}
+    </span>
+  );
+}
+
 export default function KundeservicePage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black">Kundeservice</h1>
-          <p className="text-sm opacity-70">
-            Vi behandler henvendelser fortløpende og prioriterer saker med tydelig fremdriftspotensial.
-          </p>
+      {/* HERO */}
+      <section className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
+        <div className="bg-black px-5 py-5 text-white sm:px-6 sm:py-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusChip tone="yellow">Kundeservice</StatusChip>
+            <StatusChip tone="red">Pågår</StatusChip>
+            <StatusChip tone="white">Svartid uklar</StatusChip>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-yellow-300">
+                Hjelpesenter
+              </div>
+              <h1 className="mt-3 text-3xl font-black leading-[0.95] tracking-[-0.04em] sm:text-4xl md:text-5xl">
+                Vi behandler henvendelser.
+                <br />
+                Løsning vurderes separat.
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-base">
+                Kundeservice er tilgjengelig for spørsmål om levering, retur, betaling,
+                kampanjer og øvrige forhold som fortsatt mangler en helt rolig forklaring.
+              </p>
+            </div>
+
+            <div className="shrink-0 rounded-xl bg-yellow-300 px-3 py-2 text-xs font-black uppercase tracking-wide text-black">
+              Drift opprettholdt
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-wide">
+            <span className="rounded bg-white/10 px-2 py-1 text-white">Henvendelser mottas</span>
+            <span className="rounded bg-white/10 px-2 py-1 text-white">Svar kan forekomme</span>
+            <span className="rounded bg-white/10 px-2 py-1 text-white">Utfall ikke garantert</span>
+          </div>
         </div>
 
-        <Link href="/intern" className="text-sm font-black underline decoration-2">
-          Driftsstatus →
-        </Link>
-      </div>
+        <div className="border-t border-black/10 bg-yellow-300 px-5 py-4 text-sm font-semibold text-black sm:px-6">
+          🧾 Regnskap: “Notert.” • 📣 Marked: “Vi hjelper så langt det støtter momentum.”
+        </div>
+      </section>
 
-      <div className="mt-6 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+      {/* SEARCH / ENTRY */}
+      <section className="mt-6 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="flex-1">
-            <label className="text-xs font-semibold opacity-70">
+            <label className="text-xs font-black uppercase tracking-wide opacity-55">
               Søk i hjelpesenteret
             </label>
             <input
@@ -113,9 +162,10 @@ export default function KundeservicePage() {
         <div className="mt-3 text-xs opacity-60">
           Søket brukes veiledende. Treff kan rangeres etter relevans, alvorlighetsgrad og kampanjepotensial.
         </div>
-      </div>
+      </section>
 
-      <section className="mt-6">
+      {/* CATEGORIES */}
+      <section className="mt-8">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Kategorier</h2>
@@ -148,13 +198,14 @@ export default function KundeservicePage() {
               </div>
 
               <div className="mt-4 text-sm font-black underline decoration-2">
-                Åpne →
+                Åpne behandling →
               </div>
             </Link>
           ))}
         </div>
       </section>
 
+      {/* FAQ */}
       <section className="mt-10">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -201,14 +252,18 @@ export default function KundeservicePage() {
         </div>
       </section>
 
+      {/* BIG PAYOFF */}
       <section className="mt-10">
         <div className="rounded-2xl border border-black/10 bg-yellow-300 p-6">
-          <div className="text-sm font-black">Videre behandling</div>
-          <div className="mt-1 text-xl font-black">
+          <div className="text-sm font-black uppercase tracking-wide">
+            Videre behandling
+          </div>
+          <div className="mt-1 text-xl font-black sm:text-2xl">
             Enkelte saker løses best ved å justere forventningene før de justerer deg.
           </div>
-          <div className="mt-2 text-sm opacity-80">
-            Dersom saken gjelder pris, tilgjengelighet eller generell uro, kan kampanjesidene gi et tydeligere bilde av situasjonen enn kundeservice alene.
+          <div className="mt-2 max-w-3xl text-sm opacity-80">
+            Dersom saken gjelder pris, tilgjengelighet eller generell uro, kan kampanjesidene gi
+            et tydeligere bilde av situasjonen enn kundeservice alene.
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
@@ -238,13 +293,30 @@ export default function KundeservicePage() {
         </div>
       </section>
 
+      {/* CONTACT */}
       <section className="mt-8 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
         <div className="text-sm font-black">Andre henvendelser</div>
         <div className="mt-2 text-sm opacity-80">
           Henvendelser uten klar kategori behandles manuelt, fortløpende og med varierende grad av støtte.
         </div>
-        <div className="mt-3 text-sm font-semibold">kontakt@prishandel.no</div>
-        <div className="mt-2 text-xs opacity-60">
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
+            <div className="text-[11px] font-black uppercase tracking-wide opacity-45">
+              Kontaktpunkt
+            </div>
+            <div className="mt-1 text-sm font-black">kontakt@prishandel.no</div>
+          </div>
+
+          <div className="rounded-xl border border-black/10 bg-neutral-50 p-4">
+            <div className="text-[11px] font-black uppercase tracking-wide opacity-45">
+              Svartid
+            </div>
+            <div className="mt-1 text-sm font-black">Fortløpende / uklar</div>
+          </div>
+        </div>
+
+        <div className="mt-3 text-xs opacity-60">
           Svar kan forekomme i forbindelse med kapasitet, systemavvik eller kampanjerelatert aktivitet.
         </div>
       </section>

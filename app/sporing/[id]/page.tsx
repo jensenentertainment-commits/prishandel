@@ -49,7 +49,7 @@ function buildTimeline(id: string): Step[] {
         title: "Pakken er ikke sendt",
         meta: "Årsak: Lagerstatus 0 • Tiltak: optimismedrift",
         badge: { text: "IKKE SENDT", cls: "bg-red-600 text-white" },
-        note: "Dette er ikke en feil. Dette er logistikkens personlighet.",
+        note: "Forsendelsen anses fortsatt som relevant til tross for fravær av utsendelse.",
       },
       {
         title: "Klar for utlevering",
@@ -61,7 +61,7 @@ function buildTimeline(id: string): Step[] {
         title: "Forsinket",
         meta: "Årsak: Kampanje • Tiltak: flere kampanjer",
         badge: { text: "FORSINKET", cls: "bg-red-600 text-white" },
-        note: "Markedsavdelingen har tatt over ruteplanleggingen.",
+        note: "Markedsavdelingen har overtatt deler av logistikkforståelsen.",
       },
     ],
     [
@@ -150,7 +150,6 @@ export default async function TrackingPage({
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
-        {/* HEADER */}
         <div className="bg-black px-5 py-5 text-white sm:px-6 sm:py-6">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-yellow-300">
             Forsendelsessporing
@@ -173,7 +172,6 @@ export default async function TrackingPage({
         </div>
 
         <div className="space-y-6 p-5 sm:p-6">
-          {/* SUMMARY */}
           <section className="rounded-2xl border border-black/10 bg-yellow-300 p-4 sm:p-5">
             <div className="text-xs font-black uppercase tracking-wide opacity-70">
               Sammendrag
@@ -191,29 +189,12 @@ export default async function TrackingPage({
             </div>
           </section>
 
-          {/* METRICS */}
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <MetricCard label="Fremdrift" value={`${movement}%`} note="Begrenset" />
             <MetricCard label="Systemselvtillit" value={`${confidence}%`} note="Høy" />
             <MetricCard label="Faktisk bevegelse" value={`${reality}%`} note="Svak" />
           </section>
 
-          {/* CURRENT STATUS */}
-          <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
-            <div className="text-xs font-black uppercase tracking-wide opacity-60">
-              Nåværende status
-            </div>
-            <div className="mt-2 text-xl font-black leading-tight">
-              Forsendelsen anses som håndtert så lenge den fortsatt kan spores.
-            </div>
-            <div className="mt-3 text-sm leading-relaxed opacity-80">
-              Det foreligger flere samtidige indikasjoner på levering, fravær av sending
-              og vedvarende forsinkelse. Systemet vurderer disse som forenlige inntil
-              videre.
-            </div>
-          </section>
-
-          {/* TIMELINE */}
           <section className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
             <div className="text-xs font-black uppercase tracking-wide opacity-60">
               Hendelseslogg
@@ -290,13 +271,25 @@ export default async function TrackingPage({
             </div>
           </section>
 
-          {/* CTA */}
+          <section className="rounded-2xl border border-black/10 bg-neutral-50 p-4 sm:p-5">
+            <div className="text-xs font-black uppercase tracking-wide opacity-60">
+              Nåværende vurdering
+            </div>
+            <div className="mt-2 text-xl font-black leading-tight">
+              Forsendelsen anses som håndtert så lenge den fortsatt kan spores.
+            </div>
+            <div className="mt-3 text-sm leading-relaxed opacity-80">
+              Det foreligger flere samtidige indikasjoner på levering, fravær av sending
+              og vedvarende forsinkelse. Systemet vurderer disse som forenlige inntil videre.
+            </div>
+          </section>
+
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
               href="/kundeservice"
               className="rounded-xl bg-black px-5 py-3 text-center font-black text-white hover:opacity-90"
             >
-              Kontakt kundeservice →
+              Bestrid sporing →
             </Link>
             <Link
               href="/kampanjer"
@@ -312,7 +305,6 @@ export default async function TrackingPage({
             </Link>
           </div>
 
-          {/* FOOTNOTE */}
           <div className="pt-1 text-xs opacity-60">
             *Sporing kan endre seg uten at noe beveger seg.
           </div>

@@ -9,7 +9,7 @@ import {
   TriangleAlert,
   ShieldCheck,
   Siren,
-  ShoppingCart,
+  Activity,
   ScanSearch,
   ReceiptText,
   PackageSearch,
@@ -114,9 +114,8 @@ function InternalMemo() {
   );
 }
 
-function ChallengeStep(props: {
+function SystemStep(props: {
   icon: any;
-  number: string;
   title: string;
   body: string;
 }) {
@@ -126,21 +125,14 @@ function ChallengeStep(props: {
         <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black text-yellow-300">
           <Icon icon={props.icon} />
         </div>
-
         <div className="min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45 sm:text-[11px]">
-            Steg {props.number}
-          </div>
-          <div className="mt-1 text-sm font-black sm:text-base">{props.title}</div>
-          <div className="mt-1 text-sm leading-relaxed opacity-75">{props.body}</div>
+          <div className="text-sm font-black sm:text-base">{props.title}</div>
+          <div className="mt-1 text-sm leading-relaxed opacity-72">{props.body}</div>
         </div>
       </div>
     </div>
   );
 }
-
-
-  
 
 export default function Home() {
   return (
@@ -149,7 +141,6 @@ export default function Home() {
       <section className="border-b border-black/12 bg-[linear-gradient(180deg,#f4d72d_0%,#f4e39a_38%,#f4ecd0_100%)]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10 lg:py-14">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
-            {/* LEFT */}
             <div className="rounded-[2rem] border border-black/15 bg-[#f5f2e7] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.08)] sm:p-6 lg:p-8">
               <div className="flex flex-wrap items-center gap-2">
                 <PromoChip label="Aktiv handelsstatus" tone="black" />
@@ -163,31 +154,31 @@ export default function Home() {
                 </div>
 
                 <h1 className="mt-3 text-4xl font-black leading-[0.9] tracking-[-0.06em] sm:text-5xl md:text-6xl xl:text-7xl">
-                  Prisene ned.
+                  Alt er på tilbud.
                   <br />
-                  Verdigheten også.
+                  Ingenting er tilgjengelig.
                 </h1>
 
                 <p className="mt-4 max-w-xl text-base font-semibold leading-relaxed text-black/72 sm:text-lg">
-                  Aggressivt prispress. Uklart lager. Full kampanjevilje. Gå inn før
-                  noen roer seg ned.
+                  Aggressivt prispress. Uklart lager. Operativ kasse. Du kan gjennomføre
+                  et kjøpsforsøk. Utfallet behandles separat.
                 </p>
               </div>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href="/butikk"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
+                  href="#prov-systemet"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
                 >
-                  SE DAGENS PRISFALL
+                  PRØV Å KJØPE NOE
                   <span aria-hidden>→</span>
                 </a>
 
                 <a
-                  href="/kampanjer"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
+                  href="/butikk"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
                 >
-                  ÅPNE KAMPANJEN
+                  SE VARER UNDER PRESS
                 </a>
               </div>
 
@@ -197,11 +188,11 @@ export default function Home() {
                     <Icon icon={Flame} />
                     Kampanje aktiv
                   </span>
-                  <span>Varighet uklar</span>
-                  <span className="opacity-35">•</span>
-                  <span>Prisfall registrert</span>
+                  <span>Kjøpsforsøk tillatt</span>
                   <span className="opacity-35">•</span>
                   <span>Lager vurderes separat</span>
+                  <span className="opacity-35">•</span>
+                  <span>Levering ikke endelig bekreftet</span>
                 </div>
               </div>
 
@@ -209,62 +200,78 @@ export default function Home() {
                 <PressureCard
                   icon={Truck}
                   title="Frakt"
-                  body="Gratis over 499,-. Under 499,- finnes det fortsatt press."
+                  body="Frakt omtales offensivt. Faktisk forflytning behandles løpende."
                   tone="white"
                 />
                 <PressureCard
                   icon={CreditCard}
                   title="Betaling"
-                  body="Vipps og Klarna omtales offensivt. Kassen er fortsatt under påvirkning."
+                  body="Betaling kan starte raskt. Sammenheng mellom betaling og levering er ikke lovet."
                   tone="red"
                 />
               </div>
 
               <div className="mt-4 text-[11px] leading-relaxed opacity-60">
-                *Vilkår gjelder der det passer oss. Les mer i{" "}
-                <a className="font-black underline" href="/vilkar">
-                  vilkår
-                </a>
-                .
+                *Prishandel fungerer best når kampanjen pågår, lagersituasjonen er uklar
+                og ingen helt vil ta det endelige ansvaret.
               </div>
             </div>
 
-            {/* RIGHT / SHOWPIECE */}
             <div className="rounded-[2rem] border border-black/12 bg-white p-4 shadow-[0_12px_40px_rgba(0,0,0,0.10)] sm:p-5 lg:p-6">
               <HeroLive />
             </div>
           </div>
         </div>
 
-        {/* PRESSURE STRIP */}
         <div className="border-t border-black/15 bg-black text-yellow-300">
-          <div className="mx-auto max-w-6xl px-4 py-3">
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-[0.16em] sm:text-xs">
-              <span className="inline-flex items-center gap-2 rounded bg-yellow-300 px-2 py-1 text-black">
-                <Icon icon={Megaphone} />
-                Pågående trykk
-              </span>
-              <span>Ukens prisfall er aktivt</span>
-              <span className="opacity-35">•</span>
-              <span>Kampanjen avsluttes snart*</span>
-              <span className="opacity-35">•</span>
-              <a className="underline" href="/kampanjer">
-                Se kampanjer →
-              </a>
-              <span className="opacity-35">•</span>
-              <a className="underline" href="/lager">
-                Intern lagerstatus →
-              </a>
-            </div>
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] sm:text-xs">
+            <span className="inline-flex items-center gap-2 rounded bg-yellow-300 px-2 py-1 text-black">
+              <Icon icon={Megaphone} />
+              Pågående trykk
+            </span>
+            <span>Alt er på tilbud</span>
+            <span className="opacity-35">•</span>
+            <span>Tilgjengelighet vurderes løpende</span>
+            <span className="opacity-35">•</span>
+            <a className="underline" href="/butikk">
+              Se varer →
+            </a>
+            <span className="opacity-35">•</span>
+            <a className="underline" href="/lager">
+              Intern lagerstatus →
+            </a>
           </div>
         </div>
       </section>
 
-      {/* SHAREBAIT / ONBOARDING */}
-      
-       <ShareEntry />
+      {/* PRIMARY ENTRY */}
+      <section id="prov-systemet" className="border-t border-black/10 bg-[#f5f2e7]">
+        <ShareEntry />
+      </section>
 
-      
+      {/* FAST EXPLANATION STRIP */}
+      <section className="border-t border-black/10 bg-[#f5f2e7]">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <SystemStep
+              icon={ScanSearch}
+              title="Finn en vare"
+              body="Velg et produkt under aktiv påvirkning før lageret rekker å bli tydelig."
+            />
+            <SystemStep
+              icon={ReceiptText}
+              title="Gå til kassen"
+              body="Betaling, lager og konsekvens behandles som beslektede, men separate spørsmål."
+            />
+            <SystemStep
+              icon={PackageSearch}
+              title="Følg ordren videre"
+              body="Ordredetaljer kan oppstå. Levering kan vurderes. Ingenting garanterer sammenheng."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* PRODUCTS */}
       <section className="bg-[#f0e7ab]">
         <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-10">
@@ -277,23 +284,23 @@ export default function Home() {
                 Dagens prisfall
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed opacity-72 sm:text-base">
-                Varer under aktiv påvirkning. Prisene er midlertidige. Presset er
-                varig.
+                Varer under aktiv påvirkning. Prisene er midlertidige. Kjøpsforsøk er
+                åpne inntil videre.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
-                href="/kampanjer"
+                href="/butikk"
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:opacity-90"
               >
-                Se kampanjer →
+                Se alle varer →
               </a>
               <a
-                href="/lager"
+                href="/utsolgt"
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-black/15 bg-white px-5 py-3 text-sm font-black transition hover:bg-black/5"
               >
-                Intern lagerstatus
+                Alt utsolgt
               </a>
             </div>
           </div>
@@ -301,21 +308,26 @@ export default function Home() {
 
         <ProductGrid limit={6} />
       </section>
- <CampaignEntry />
-      {/* PAYOFF LAYER */}
+
+      {/* PAYOFF */}
       <section className="border-t border-black/10 bg-[#f5f2e7]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.02fr_0.98fr]">
             <CampaignMotor />
             <InternalMemo />
           </div>
         </div>
       </section>
 
+      {/* CAMPAIGN FEATURE */}
+      <section className="border-t border-black/10 bg-[#f5f2e7]">
+        <CampaignEntry />
+      </section>
+
       {/* INTERNAL SIGNALS */}
       <section className="border-t border-black/10 bg-[#f0e7ab]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.8fr] md:items-start">
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1.15fr_0.85fr] md:items-start">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45 sm:text-[11px]">
                 Interne signaler
@@ -325,8 +337,8 @@ export default function Home() {
               </h2>
             </div>
             <div className="pt-1 text-sm leading-relaxed opacity-70 sm:text-base">
-              Prishandel fungerer best når kampanjen pågår, lagersituasjonen er uklar
-              og ingen helt vil ta det endelige ansvaret.
+              Prishandel fungerer best når kampanjen pågår, tilgjengeligheten er uklar
+              og systemet får jobbe uten for mye avklaring.
             </div>
           </div>
 
@@ -352,29 +364,44 @@ export default function Home() {
               note="Regnskap følger situasjonen løpende og motvillig."
             />
           </div>
-        </div>
-      </section>
 
-      {/* FOOTNOTE / LAST PUSH */}
-      <section className="border-t border-black/10 bg-[#f5f2e7]">
-        <div className="mx-auto max-w-6xl px-4 py-8">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
             <PressureCard
-              icon={Siren}
-              title="Trykk"
-              body="Kampanjen fortsetter inntil stemningen svekkes eller utvalget forsvinner."
-              tone="yellow"
+              icon={Activity}
+              title="Status"
+              body="Kampanjen regnes som operativ så lenge ingen tvinger fram for mye presisjon."
+              tone="white"
             />
             <PressureCard
               icon={TriangleAlert}
               title="Avvik"
-              body="Kampanjestatus kan avvike fra opplevd kampanjestatus. Begge kan fortsatt brukes."
-              tone="white"
+              body="Opplevd kjøpsmulighet kan avvike fra faktisk kjøpsmulighet. Begge kan fortsatt markedsføres."
+              tone="yellow"
             />
             <PressureCard
               icon={ShieldCheck}
               title="Trygghet"
-              body="Vi står inne for opplevelsen så langt det lar seg formulere uten juridisk ubehag."
+              body="Vi står inne for opplevelsen så langt det lar seg formulere uten umiddelbar motstand."
+              tone="white"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* LAST PUSH */}
+      <section className="border-t border-black/10 bg-[#f5f2e7]">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.15fr_0.85fr]">
+            <PressureCard
+              icon={Siren}
+              title="Trykk"
+              body="Den beste måten å forstå Prishandel på er fortsatt å prøve å kjøpe noe før systemet roer seg ned."
+              tone="black"
+            />
+            <PressureCard
+              icon={Megaphone}
+              title="Deling"
+              body="Ikke forklar siden. Send noen inn for å handle og la resten ordne seg selv."
               tone="white"
             />
           </div>
